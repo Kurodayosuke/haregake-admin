@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>haregake-lab Admin</title>
+<style>
+  :root {
+    --bg: #0f172a; --surface: #1e293b; --border: #334155;
+    --text: #e2e8f0; --text2: #94a3b8; --accent: #38bdf8;
+    --green: #4ade80; --red: #f87171; --yellow: #fbbf24; --purple: #a78bfa;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 20px 32px; display: flex; justify-content: space-between; align-items: center; }
+  .header h1 { font-size: 20px; font-weight: 600; }
+  .header h1 span { color: var(--accent); }
+  .header .subtitle { color: var(--text2); font-size: 13px; margin-top: 2px; }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .stat-card .label { color: var(--text2); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-card .value { font-size: 28px; font-weight: 700; margin-top: 4px; }
+  .stat-card .value.blue { color: var(--accent); }
+  .stat-card .value.green { color: var(--green); }
+  .stat-card .value.yellow { color: var(--yellow); }
+
+  .section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 24px; overflow: hidden; }
+  .section-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .section-header h2 { font-size: 16px; font-weight: 600; }
+
+  .btn { padding: 8px 20px; border-radius: 8px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.15s; }
+  .btn-primary { background: var(--accent); color: #0f172a; }
+  .btn-primary:hover { background: #7dd3fc; }
+  .btn-danger { background: transparent; border: 1px solid var(--red); color: var(--red); }
+  .btn-danger:hover { background: var(--red); color: white; }
+  .btn-sm { padding: 5px 12px; font-size: 12px; }
+  .btn-download { background: transparent; border: 1px solid var(--green); color: var(--green); }
+  .btn-download:hover { background: var(--green); color: #0f172a; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; padding: 12px 24px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text2); background: rgba(0,0,0,0.2); }
+  td { padding: 14px 24px; border-top: 1px solid var(--border); font-size: 14px; vertical-align: middle; }
+  tr:hover td { background: rgba(56, 189, 248, 0.03); }
+
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 9999px; font-size: 11px; font-weight: 600; }
+  .badge-green { background: rgba(74,222,128,0.15); color: var(--green); }
+  .badge-red { background: rgba(248,113,113,0.15); color: var(--red); }
+  .badge-blue { background: rgba(56,189,248,0.15); color: var(--accent); }
+  .badge-purple { background: rgba(167,139,250,0.15); color: var(--purple); }
+
+  .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 100; justify-content: center; align-items: center; }
+  .modal-overlay.active { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 32px; width: 480px; max-width: 90vw; }
+  .modal h3 { font-size: 18px; margin-bottom: 20px; }
+  .modal input[type="text"] { width: 100%; padding: 12px 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 15px; outline: none; margin-bottom: 8px; }
+  .modal input[type="text"]:focus { border-color: var(--accent); }
+  .modal .hint { color: var(--text2); font-size: 12px; margin-bottom: 20px; }
+  .modal .actions { display: flex; gap: 12px; justify-content: flex-end; }
+
+  .key-modal textarea { width: 100%; height: 200px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--green); font-family: monospace; font-size: 12px; padding: 12px; resize: none; }
+  .key-modal .warning { background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.3); border-radius: 8px; padding: 12px; color: var(--yellow); font-size: 13px; margin: 16px 0; }
+
+  .toast { position: fixed; bottom: 24px; right: 24px; padding: 14px 24px; border-radius: 10px; font-size: 14px; font-weight: 500; z-index: 200; transform: translateY(100px); opacity: 0; transition: all 0.3s; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { background: rgba(74,222,128,0.2); border: 1px solid var(--green); color: var(--green); }
+  .toast.error { background: rgba(248,113,113,0.2); border: 1px solid var(--red); color: var(--red); }
+
+  .empty-row td { text-align: center; color: var(--text2); padding: 40px; }
+  .loading { text-align: center; padding: 40px; color: var(--text2); }
+  .dir-list { display: flex; gap: 4px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1><span>haregake-lab</span> Admin Panel</h1>
+    <div class="subtitle">User Management</div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="stats">
+    <div class="stat-card">
+      <div class="label">Total Users</div>
+      <div class="value blue" id="totalUsers">-</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">SSH Key Registered</div>
+      <div class="value green" id="keyCount">-</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Sandbox Members</div>
+      <div class="value yellow" id="sandboxCount">-</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <h2>Users</h2>
+      <button class="btn btn-primary" onclick="openCreateModal()">+ Add User</button>
+    </div>
+    <div id="userTable"><div class="loading">Loading...</div></div>
+  </div>
+</div>
+
+<!-- Create Modal -->
+<div class="modal-overlay" id="createModal">
+  <div class="modal">
+    <h3>Add New User</h3>
+    <input type="text" id="newUserName" placeholder="Enter name (e.g. yamada)" autocomplete="off" />
+    <div class="hint">user_ prefix is added automatically. Only alphanumeric and underscore allowed.</div>
+    <div class="actions">
+      <button class="btn" style="background:var(--border);color:var(--text)" onclick="closeCreateModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="createUser()" id="createBtn">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- Key Modal -->
+<div class="modal-overlay key-modal" id="keyModal">
+  <div class="modal">
+    <h3>SSH Private Key</h3>
+    <div class="warning">Warning: This key is shown only once. Please copy or download it now.</div>
+    <textarea id="keyContent" readonly></textarea>
+    <div class="actions" style="margin-top:16px">
+      <button class="btn btn-download" onclick="downloadKey()">Download</button>
+      <button class="btn" style="background:var(--border);color:var(--text)" onclick="copyKey()">Copy</button>
+      <button class="btn btn-primary" onclick="closeKeyModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const BASE = location.pathname.replace(/\/$/, '');
+let currentKeyUser = '';
+let currentKeyContent = '';
+
+async function loadUsers() {
+  try {
+    const res = await fetch(BASE + '/api/users');
+    if (!res.ok) throw new Error('API error: ' + res.status);
+    const users = await res.json();
+    renderUsers(users);
+    document.getElementById('totalUsers').textContent = users.length;
+    document.getElementById('keyCount').textContent = users.filter(u => u.hasKey).length;
+    document.getElementById('sandboxCount').textContent = users.filter(u => u.inSandbox).length;
+  } catch(e) {
+    console.error('loadUsers error:', e);
+    document.getElementById('userTable').innerHTML =
+      '<div class="loading" style="color:var(--red)">Loading Error: ' + e.message + '</div>';
+  }
+}
+
+function renderUsers(users) {
+  if (users.length === 0) {
+    document.getElementById('userTable').innerHTML =
+      '<table><tr class="empty-row"><td>No users registered yet.</td></tr></table>';
+    return;
+  }
+
+  let html = '<table><thead><tr>' +
+    '<th>Username</th><th>SSH Key</th><th>Groups</th>' +
+    '<th>Owned Dirs</th><th>Status</th><th>Actions</th>' +
+    '</tr></thead><tbody>';
+
+  for (const u of users) {
+    const keyBadge = u.hasKey
+      ? '<span class="badge badge-green">Registered</span>'
+      : '<span class="badge badge-red">Not Set</span>';
+
+    const sandboxBadge = u.inSandbox
+      ? '<span class="badge badge-blue">sandbox</span>'
+      : '';
+
+    const dirs = u.ownedDirs.length > 0
+      ? '<div class="dir-list">' + u.ownedDirs.map(d => '<span class="badge badge-purple">' + d + '</span>').join('') + '</div>'
+      : '<span style="color:var(--text2)">-</span>';
+
+    const status = u.locked
+      ? '<span class="badge badge-green">Key Auth Only</span>'
+      : '<span class="badge badge-yellow">PW Enabled</span>';
+
+    html += '<tr>';
+    html += '<td><strong>' + u.username + '</strong><br><span style="color:var(--text2);font-size:12px">UID: ' + u.uid + '</span></td>';
+    html += '<td>' + keyBadge + '</td>';
+    html += '<td>' + sandboxBadge + '</td>';
+    html += '<td>' + dirs + '</td>';
+    html += '<td>' + status + '</td>';
+    html += '<td>';
+    if (u.hasKey) html += '<button class="btn btn-download btn-sm" onclick="downloadUserKey(\'' + u.username + '\')">Key DL</button> ';
+    html += '<button class="btn btn-danger btn-sm" onclick="deleteUser(\'' + u.username + '\')">Delete</button>';
+    html += '</td></tr>';
+  }
+  html += '</tbody></table>';
+  document.getElementById('userTable').innerHTML = html;
+}
+
+function openCreateModal() {
+  document.getElementById('createModal').classList.add('active');
+  document.getElementById('newUserName').value = '';
+  document.getElementById('newUserName').focus();
+}
+
+function closeCreateModal() {
+  document.getElementById('createModal').classList.remove('active');
+}
+
+async function createUser() {
+  const name = document.getElementById('newUserName').value.trim();
+  if (!name) return;
+  const btn = document.getElementById('createBtn');
+  btn.disabled = true;
+  btn.textContent = 'Creating...';
+  try {
+    const res = await fetch(BASE + '/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showToast(data.error, 'error');
+      return;
+    }
+    closeCreateModal();
+    showToast(data.message, 'success');
+    if (data.privateKey) {
+      currentKeyUser = data.username;
+      currentKeyContent = data.privateKey;
+      document.getElementById('keyContent').value = data.privateKey;
+      document.getElementById('keyModal').classList.add('active');
+    }
+    loadUsers();
+  } catch(e) {
+    showToast('Network error: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Create';
+  }
+}
+
+async function deleteUser(username) {
+  if (!confirm('Delete ' + username + '?\nHome directory will also be removed.')) return;
+  try {
+    const res = await fetch(BASE + '/api/users/' + username, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) {
+      showToast(data.error, 'error');
+      return;
+    }
+    showToast(data.message, 'success');
+    loadUsers();
+  } catch(e) {
+    showToast('Network error: ' + e.message, 'error');
+  }
+}
+
+function downloadUserKey(username) {
+  window.location.href = BASE + '/api/users/' + username + '/key';
+}
+
+function downloadKey() {
+  const blob = new Blob([currentKeyContent], { type: 'application/octet-stream' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = currentKeyUser + '_id_ed25519';
+  a.click();
+}
+
+function copyKey() {
+  navigator.clipboard.writeText(currentKeyContent).then(() => showToast('Copied!', 'success'));
+}
+
+function closeKeyModal() {
+  document.getElementById('keyModal').classList.remove('active');
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type + ' show';
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+document.getElementById('newUserName').addEventListener('keydown', e => {
+  if (e.key === 'Enter') createUser();
+});
+
+loadUsers();
+</script>
+</body>
+</html>

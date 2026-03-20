@@ -1,0 +1,12 @@
+services:
+  admin:
+    build: .
+    container_name: admin_panel
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3004:3000"
+    pid: host
+    privileged: true
+    environment:
+      - ADMIN_USER=admin
+      - ADMIN_PASS=haregake2026!
