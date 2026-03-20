@@ -134,6 +134,67 @@ app.post('/api/users', (req, res) => {
   }
 });
 
+// ===== API: ユーザー一括作成 =====
+app.post('/api/users/bulk', (req, res) => {
+  try {
+    const { names } = req.body;
+    if (!names || !Array.isArray(names) || names.length === 0) {
+      return res.status(400).json({ error: '名前のリストを指定してください' });
+    }
+    if (names.length > 50) {
+      return res.status(400).json({ error: '一度に作成できるのは50ユーザーまでです' });
+    }
+
+    const results = [];
+    for (const rawName of names) {
+      const name = rawName.trim();
+      if (!name) continue;
+      if (!/^[a-zA-Z][a-zA-Z0-9_]{0,29}$/.test(name)) {
+        results.push({ name, success: false, error: '無効な名前（英数字・アンダースコアのみ、先頭は英字）' });
+        continue;
+      }
+
+      const username = name.startsWith('user_') ? name : `user_${name}`;
+
+      try {
+        hostExec(`id ${username}`);
+        results.push({ name, username, success: false, error: '既に存在します' });
+        continue;
+      } catch (e) { /* OK */ }
+
+      try {
+        hostExec(`useradd -m -s /bin/bash ${username}`);
+        hostExec(`passwd -l ${username}`);
+        hostExec(`usermod -aG sandbox_users ${username}`);
+
+        const keyDir = `/home/${username}/.ssh`;
+        hostExec(`mkdir -p ${keyDir}`);
+        hostExec(`ssh-keygen -t ed25519 -f ${keyDir}/id_ed25519 -N '' -C '${username}@haregake-lab'`);
+        hostExec(`cp ${keyDir}/id_ed25519.pub ${keyDir}/authorized_keys`);
+        hostExec(`chmod 700 ${keyDir}`);
+        hostExec(`chmod 600 ${keyDir}/authorized_keys ${keyDir}/id_ed25519`);
+        hostExec(`chmod 644 ${keyDir}/id_ed25519.pub`);
+        hostExec(`chown -R ${username}:${username} ${keyDir}`);
+
+        const privateKey = hostExec(`cat ${keyDir}/id_ed25519`);
+        results.push({ name, username, success: true, privateKey });
+      } catch (e) {
+        results.push({ name, username, success: false, error: e.message });
+      }
+    }
+
+    const successCount = results.filter(r => r.success).length;
+    const failCount = results.filter(r => !r.success).length;
+    res.json({
+      message: `${successCount} 件作成 / ${failCount} 件スキップ`,
+      results,
+    });
+  } catch (e) {
+    console.error('POST /api/users/bulk error:', e.message);
+    res.status(500).json({ error: `一括作成失敗: ${e.message}` });
+  }
+});
+
 // ===== API: ユーザー削除 =====
 app.delete('/api/users/:username', (req, res) => {
   try {

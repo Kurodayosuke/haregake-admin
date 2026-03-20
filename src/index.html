@@ -17,6 +17,7 @@
   .header h1 { font-size: 20px; font-weight: 600; }
   .header h1 span { color: var(--accent); }
   .header .subtitle { color: var(--text2); font-size: 13px; margin-top: 2px; }
+  .header-actions { display: flex; gap: 8px; }
 
   .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
 
@@ -29,17 +30,22 @@
   .stat-card .value.yellow { color: var(--yellow); }
 
   .section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 24px; overflow: hidden; }
-  .section-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .section-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
   .section-header h2 { font-size: 16px; font-weight: 600; }
+  .section-body { padding: 24px; }
 
-  .btn { padding: 8px 20px; border-radius: 8px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.15s; }
+  .btn { padding: 8px 20px; border-radius: 8px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; }
   .btn-primary { background: var(--accent); color: #0f172a; }
   .btn-primary:hover { background: #7dd3fc; }
+  .btn-secondary { background: var(--purple); color: #0f172a; }
+  .btn-secondary:hover { background: #c4b5fd; }
   .btn-danger { background: transparent; border: 1px solid var(--red); color: var(--red); }
   .btn-danger:hover { background: var(--red); color: white; }
   .btn-sm { padding: 5px 12px; font-size: 12px; }
   .btn-download { background: transparent; border: 1px solid var(--green); color: var(--green); }
   .btn-download:hover { background: var(--green); color: #0f172a; }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text2); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
 
   table { width: 100%; border-collapse: collapse; }
   th { text-align: left; padding: 12px 24px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text2); background: rgba(0,0,0,0.2); }
@@ -51,17 +57,20 @@
   .badge-red { background: rgba(248,113,113,0.15); color: var(--red); }
   .badge-blue { background: rgba(56,189,248,0.15); color: var(--accent); }
   .badge-purple { background: rgba(167,139,250,0.15); color: var(--purple); }
+  .badge-yellow { background: rgba(251,191,36,0.15); color: var(--yellow); }
 
   .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 100; justify-content: center; align-items: center; }
   .modal-overlay.active { display: flex; }
-  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 32px; width: 480px; max-width: 90vw; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 32px; width: 580px; max-width: 90vw; max-height: 90vh; overflow-y: auto; }
   .modal h3 { font-size: 18px; margin-bottom: 20px; }
   .modal input[type="text"] { width: 100%; padding: 12px 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 15px; outline: none; margin-bottom: 8px; }
   .modal input[type="text"]:focus { border-color: var(--accent); }
+  .modal textarea { width: 100%; padding: 12px 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: monospace; font-size: 14px; outline: none; resize: vertical; }
+  .modal textarea:focus { border-color: var(--accent); }
   .modal .hint { color: var(--text2); font-size: 12px; margin-bottom: 20px; }
-  .modal .actions { display: flex; gap: 12px; justify-content: flex-end; }
+  .modal .actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; }
 
-  .key-modal textarea { width: 100%; height: 200px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--green); font-family: monospace; font-size: 12px; padding: 12px; resize: none; }
+  .key-modal textarea { color: var(--green); font-size: 12px; height: 200px; resize: none; }
   .key-modal .warning { background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.3); border-radius: 8px; padding: 12px; color: var(--yellow); font-size: 13px; margin: 16px 0; }
 
   .toast { position: fixed; bottom: 24px; right: 24px; padding: 14px 24px; border-radius: 10px; font-size: 14px; font-weight: 500; z-index: 200; transform: translateY(100px); opacity: 0; transition: all 0.3s; }
@@ -72,6 +81,36 @@
   .empty-row td { text-align: center; color: var(--text2); padding: 40px; }
   .loading { text-align: center; padding: 40px; color: var(--text2); }
   .dir-list { display: flex; gap: 4px; flex-wrap: wrap; }
+
+  /* Guide */
+  .guide { padding: 24px; }
+  .guide h3 { font-size: 15px; font-weight: 600; margin: 20px 0 10px 0; color: var(--accent); }
+  .guide h3:first-child { margin-top: 0; }
+  .guide p { color: var(--text2); font-size: 13px; line-height: 1.7; margin-bottom: 8px; }
+  .guide ol, .guide ul { color: var(--text2); font-size: 13px; line-height: 1.8; margin-left: 20px; margin-bottom: 12px; }
+  .guide code { background: var(--bg); padding: 2px 8px; border-radius: 4px; font-size: 12px; color: var(--accent); }
+  .guide .guide-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 12px; }
+  .guide .guide-card { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .guide .guide-card h4 { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text); }
+  .guide .guide-card p { font-size: 12px; margin-bottom: 0; }
+  .guide-toggle { cursor: pointer; user-select: none; }
+  .guide-toggle::after { content: ' [Hide]'; font-size: 12px; color: var(--text2); }
+  .guide-toggle.collapsed::after { content: ' [Show]'; }
+
+  /* Bulk result */
+  .bulk-results { margin-top: 16px; max-height: 300px; overflow-y: auto; }
+  .bulk-result-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; font-size: 13px; }
+  .bulk-result-item.success { border-color: rgba(74,222,128,0.3); }
+  .bulk-result-item.fail { border-color: rgba(248,113,113,0.3); }
+  .bulk-result-item .name { font-weight: 600; }
+  .bulk-result-item .dl-link { color: var(--green); cursor: pointer; text-decoration: underline; font-size: 12px; }
+
+  .btn-actions { display: flex; gap: 6px; }
+
+  @media (max-width: 768px) {
+    .header { flex-direction: column; align-items: flex-start; gap: 12px; }
+    td, th { padding: 10px 12px; font-size: 12px; }
+  }
 </style>
 </head>
 <body>
@@ -79,11 +118,76 @@
 <div class="header">
   <div>
     <h1><span>haregake-lab</span> Admin Panel</h1>
-    <div class="subtitle">User Management</div>
+    <div class="subtitle">User Management &amp; Permissions</div>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-ghost" onclick="toggleGuide()">Usage Guide</button>
   </div>
 </div>
 
 <div class="container">
+
+  <!-- Usage Guide -->
+  <div class="section" id="guideSection" style="display:none;">
+    <div class="section-header">
+      <h2>Usage Guide</h2>
+    </div>
+    <div class="guide">
+      <div class="guide-grid">
+        <div class="guide-card">
+          <h4>1. Add User (Single)</h4>
+          <p>Click <strong>+ Add User</strong>, enter a name (e.g. <code>yamada</code>), and click Create. A Linux user <code>user_yamada</code> is created with SSH key pair auto-generated. Download or copy the private key immediately.</p>
+        </div>
+        <div class="guide-card">
+          <h4>2. Add Users (Bulk)</h4>
+          <p>Click <strong>Bulk Add</strong>, enter multiple names (one per line), and click Create All. SSH keys are generated for each user. Download all keys as a ZIP or individually.</p>
+        </div>
+        <div class="guide-card">
+          <h4>3. Share SSH Key</h4>
+          <p>Send the downloaded private key file to the team member. They save it as <code>~/.ssh/id_ed25519</code> and connect: <code>ssh user_yamada@160.16.207.196</code></p>
+        </div>
+        <div class="guide-card">
+          <h4>4. Permissions</h4>
+          <p><span class="badge badge-blue">sandbox</span> = All members can read/write. <span class="badge badge-purple">app1</span><span class="badge badge-purple">app2</span> = Only the assigned owner can write. Others are read-only.</p>
+        </div>
+      </div>
+
+      <h3>User Connection Guide (for team members)</h3>
+      <ol>
+        <li>Receive private key file from admin (e.g. <code>user_yamada_id_ed25519</code>)</li>
+        <li>Save to <code>~/.ssh/</code> and set permissions:<br><code>chmod 600 ~/.ssh/user_yamada_id_ed25519</code></li>
+        <li>Connect to server:<br><code>ssh -i ~/.ssh/user_yamada_id_ed25519 user_yamada@160.16.207.196</code></li>
+        <li>Or add to <code>~/.ssh/config</code> for convenience:
+          <br><code>Host haregake</code>
+          <br><code>&nbsp;&nbsp;HostName 160.16.207.196</code>
+          <br><code>&nbsp;&nbsp;User user_yamada</code>
+          <br><code>&nbsp;&nbsp;IdentityFile ~/.ssh/user_yamada_id_ed25519</code>
+          <br>Then just run: <code>ssh haregake</code>
+        </li>
+      </ol>
+
+      <h3>Directory Structure</h3>
+      <p><code>/var/www/app/</code></p>
+      <ul>
+        <li><code>sandbox/</code> - Shared experiment area (all <code>sandbox_users</code> group members can write)</li>
+        <li><code>app1/</code> - Production app 1 (owner: <code>user_tanaka</code>)</li>
+        <li><code>app2/</code> - Production app 2 (owner: <code>user_sato</code>)</li>
+      </ul>
+
+      <h3>Deploy an App</h3>
+      <p>Admin runs: <code>sudo deploy-app sandbox</code> (or <code>app1</code>, <code>app2</code>)</p>
+      <p>This rebuilds and restarts the Docker container for that app.</p>
+
+      <h3>Access URLs</h3>
+      <ul>
+        <li><code>https://app.haregake-lab.com/sandbox/</code></li>
+        <li><code>https://app.haregake-lab.com/app1/</code></li>
+        <li><code>https://app.haregake-lab.com/app2/</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Stats -->
   <div class="stats">
     <div class="stat-card">
       <div class="label">Total Users</div>
@@ -99,29 +203,48 @@
     </div>
   </div>
 
+  <!-- User Table -->
   <div class="section">
     <div class="section-header">
       <h2>Users</h2>
-      <button class="btn btn-primary" onclick="openCreateModal()">+ Add User</button>
+      <div class="btn-actions">
+        <button class="btn btn-secondary" onclick="openBulkModal()">Bulk Add</button>
+        <button class="btn btn-primary" onclick="openCreateModal()">+ Add User</button>
+      </div>
     </div>
     <div id="userTable"><div class="loading">Loading...</div></div>
   </div>
 </div>
 
-<!-- Create Modal -->
+<!-- Single Create Modal -->
 <div class="modal-overlay" id="createModal">
   <div class="modal">
     <h3>Add New User</h3>
     <input type="text" id="newUserName" placeholder="Enter name (e.g. yamada)" autocomplete="off" />
     <div class="hint">user_ prefix is added automatically. Only alphanumeric and underscore allowed.</div>
     <div class="actions">
-      <button class="btn" style="background:var(--border);color:var(--text)" onclick="closeCreateModal()">Cancel</button>
+      <button class="btn btn-ghost" onclick="closeCreateModal()">Cancel</button>
       <button class="btn btn-primary" onclick="createUser()" id="createBtn">Create</button>
     </div>
   </div>
 </div>
 
-<!-- Key Modal -->
+<!-- Bulk Create Modal -->
+<div class="modal-overlay" id="bulkModal">
+  <div class="modal">
+    <h3>Bulk Add Users</h3>
+    <p style="color:var(--text2);font-size:13px;margin-bottom:12px;">Enter one name per line. <code>user_</code> prefix is added automatically.</p>
+    <textarea id="bulkNames" rows="8" placeholder="tanaka&#10;sato&#10;suzuki&#10;yamada&#10;watanabe"></textarea>
+    <div class="hint">Max 50 users at once. Empty lines are ignored.</div>
+    <div id="bulkResults"></div>
+    <div class="actions">
+      <button class="btn btn-ghost" onclick="closeBulkModal()">Close</button>
+      <button class="btn btn-secondary" id="bulkBtn" onclick="createBulkUsers()">Create All</button>
+    </div>
+  </div>
+</div>
+
+<!-- Key Modal (single) -->
 <div class="modal-overlay key-modal" id="keyModal">
   <div class="modal">
     <h3>SSH Private Key</h3>
@@ -129,8 +252,21 @@
     <textarea id="keyContent" readonly></textarea>
     <div class="actions" style="margin-top:16px">
       <button class="btn btn-download" onclick="downloadKey()">Download</button>
-      <button class="btn" style="background:var(--border);color:var(--text)" onclick="copyKey()">Copy</button>
+      <button class="btn btn-ghost" onclick="copyKey()">Copy</button>
       <button class="btn btn-primary" onclick="closeKeyModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Keys Modal -->
+<div class="modal-overlay key-modal" id="bulkKeyModal">
+  <div class="modal">
+    <h3>Bulk Created - SSH Keys</h3>
+    <div class="warning">Warning: These keys are shown only once. Download all keys now.</div>
+    <div id="bulkKeyList" class="bulk-results"></div>
+    <div class="actions" style="margin-top:16px">
+      <button class="btn btn-download" onclick="downloadAllKeys()">Download All (.zip)</button>
+      <button class="btn btn-primary" onclick="closeBulkKeyModal()">Close</button>
     </div>
   </div>
 </div>
@@ -141,7 +277,9 @@
 const BASE = location.pathname.replace(/\/$/, '');
 let currentKeyUser = '';
 let currentKeyContent = '';
+let bulkKeyData = [];
 
+// ===== Load Users =====
 async function loadUsers() {
   try {
     const res = await fetch(BASE + '/api/users');
@@ -161,7 +299,7 @@ async function loadUsers() {
 function renderUsers(users) {
   if (users.length === 0) {
     document.getElementById('userTable').innerHTML =
-      '<table><tr class="empty-row"><td>No users registered yet.</td></tr></table>';
+      '<table><tr class="empty-row"><td colspan="6">No users registered yet. Click "+ Add User" to get started.</td></tr></table>';
     return;
   }
 
@@ -193,31 +331,34 @@ function renderUsers(users) {
     html += '<td>' + sandboxBadge + '</td>';
     html += '<td>' + dirs + '</td>';
     html += '<td>' + status + '</td>';
-    html += '<td>';
-    if (u.hasKey) html += '<button class="btn btn-download btn-sm" onclick="downloadUserKey(\'' + u.username + '\')">Key DL</button> ';
+    html += '<td><div class="btn-actions">';
+    if (u.hasKey) html += '<button class="btn btn-download btn-sm" onclick="downloadUserKey(\'' + u.username + '\')">Key DL</button>';
     html += '<button class="btn btn-danger btn-sm" onclick="deleteUser(\'' + u.username + '\')">Delete</button>';
-    html += '</td></tr>';
+    html += '</div></td></tr>';
   }
   html += '</tbody></table>';
   document.getElementById('userTable').innerHTML = html;
 }
 
+// ===== Guide Toggle =====
+function toggleGuide() {
+  const s = document.getElementById('guideSection');
+  s.style.display = s.style.display === 'none' ? 'block' : 'none';
+}
+
+// ===== Single Create =====
 function openCreateModal() {
   document.getElementById('createModal').classList.add('active');
   document.getElementById('newUserName').value = '';
   document.getElementById('newUserName').focus();
 }
-
-function closeCreateModal() {
-  document.getElementById('createModal').classList.remove('active');
-}
+function closeCreateModal() { document.getElementById('createModal').classList.remove('active'); }
 
 async function createUser() {
   const name = document.getElementById('newUserName').value.trim();
   if (!name) return;
   const btn = document.getElementById('createBtn');
-  btn.disabled = true;
-  btn.textContent = 'Creating...';
+  btn.disabled = true; btn.textContent = 'Creating...';
   try {
     const res = await fetch(BASE + '/api/users', {
       method: 'POST',
@@ -225,10 +366,7 @@ async function createUser() {
       body: JSON.stringify({ name })
     });
     const data = await res.json();
-    if (!res.ok) {
-      showToast(data.error, 'error');
-      return;
-    }
+    if (!res.ok) { showToast(data.error, 'error'); return; }
     closeCreateModal();
     showToast(data.message, 'success');
     if (data.privateKey) {
@@ -241,58 +379,144 @@ async function createUser() {
   } catch(e) {
     showToast('Network error: ' + e.message, 'error');
   } finally {
-    btn.disabled = false;
-    btn.textContent = 'Create';
+    btn.disabled = false; btn.textContent = 'Create';
   }
 }
 
+// ===== Bulk Create =====
+function openBulkModal() {
+  document.getElementById('bulkModal').classList.add('active');
+  document.getElementById('bulkNames').value = '';
+  document.getElementById('bulkResults').innerHTML = '';
+  document.getElementById('bulkNames').focus();
+}
+function closeBulkModal() { document.getElementById('bulkModal').classList.remove('active'); }
+
+async function createBulkUsers() {
+  const raw = document.getElementById('bulkNames').value.trim();
+  if (!raw) return;
+  const names = raw.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+  if (names.length === 0) return;
+
+  const btn = document.getElementById('bulkBtn');
+  btn.disabled = true; btn.textContent = 'Creating...';
+  document.getElementById('bulkResults').innerHTML = '<div class="loading">Processing ' + names.length + ' users...</div>';
+
+  try {
+    const res = await fetch(BASE + '/api/users/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ names })
+    });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error, 'error'); return; }
+
+    showToast(data.message, 'success');
+
+    // Show results in modal
+    let html = '';
+    for (const r of data.results) {
+      if (r.success) {
+        html += '<div class="bulk-result-item success"><span class="name">' + r.username + '</span><span class="badge badge-green">Created</span></div>';
+      } else {
+        html += '<div class="bulk-result-item fail"><span class="name">' + (r.username || r.name) + '</span><span class="badge badge-red">' + r.error + '</span></div>';
+      }
+    }
+    document.getElementById('bulkResults').innerHTML = html;
+
+    // Show key download modal
+    bulkKeyData = data.results.filter(r => r.success && r.privateKey);
+    if (bulkKeyData.length > 0) {
+      let keyHtml = '';
+      for (const r of bulkKeyData) {
+        keyHtml += '<div class="bulk-result-item success">' +
+          '<span class="name">' + r.username + '</span>' +
+          '<span class="dl-link" onclick="downloadSingleBulkKey(\'' + r.username + '\')">Download Key</span>' +
+          '</div>';
+      }
+      document.getElementById('bulkKeyList').innerHTML = keyHtml;
+      setTimeout(() => {
+        closeBulkModal();
+        document.getElementById('bulkKeyModal').classList.add('active');
+      }, 1500);
+    }
+
+    loadUsers();
+  } catch(e) {
+    showToast('Network error: ' + e.message, 'error');
+    document.getElementById('bulkResults').innerHTML = '';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Create All';
+  }
+}
+
+function downloadSingleBulkKey(username) {
+  const item = bulkKeyData.find(r => r.username === username);
+  if (!item) return;
+  const blob = new Blob([item.privateKey], { type: 'application/octet-stream' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = username + '_id_ed25519'; a.click();
+}
+
+function downloadAllKeys() {
+  // Simple: download each key as individual file (no zip library needed)
+  for (const r of bulkKeyData) {
+    const blob = new Blob([r.privateKey], { type: 'application/octet-stream' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = r.username + '_id_ed25519'; a.click();
+  }
+  showToast(bulkKeyData.length + ' keys downloaded', 'success');
+}
+
+function closeBulkKeyModal() { document.getElementById('bulkKeyModal').classList.remove('active'); }
+
+// ===== Delete =====
 async function deleteUser(username) {
   if (!confirm('Delete ' + username + '?\nHome directory will also be removed.')) return;
   try {
     const res = await fetch(BASE + '/api/users/' + username, { method: 'DELETE' });
     const data = await res.json();
-    if (!res.ok) {
-      showToast(data.error, 'error');
-      return;
-    }
+    if (!res.ok) { showToast(data.error, 'error'); return; }
     showToast(data.message, 'success');
     loadUsers();
-  } catch(e) {
-    showToast('Network error: ' + e.message, 'error');
-  }
+  } catch(e) { showToast('Network error: ' + e.message, 'error'); }
 }
 
+// ===== Key Download =====
 function downloadUserKey(username) {
   window.location.href = BASE + '/api/users/' + username + '/key';
 }
 
 function downloadKey() {
   const blob = new Blob([currentKeyContent], { type: 'application/octet-stream' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = currentKeyUser + '_id_ed25519';
-  a.click();
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = currentKeyUser + '_id_ed25519'; a.click();
 }
 
 function copyKey() {
   navigator.clipboard.writeText(currentKeyContent).then(() => showToast('Copied!', 'success'));
 }
 
-function closeKeyModal() {
-  document.getElementById('keyModal').classList.remove('active');
-}
+function closeKeyModal() { document.getElementById('keyModal').classList.remove('active'); }
 
+// ===== Toast =====
 function showToast(msg, type) {
   const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast ' + type + ' show';
+  t.textContent = msg; t.className = 'toast ' + type + ' show';
   setTimeout(() => t.classList.remove('show'), 3000);
 }
 
+// ===== Keyboard Shortcuts =====
 document.getElementById('newUserName').addEventListener('keydown', e => {
   if (e.key === 'Enter') createUser();
 });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeCreateModal(); closeBulkModal(); closeKeyModal(); closeBulkKeyModal();
+  }
+});
 
+// ===== Init =====
 loadUsers();
 </script>
 </body>
