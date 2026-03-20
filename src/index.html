@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>haregake-lab Admin</title>
+<title>haregake-lab 管理パネル</title>
 <style>
   :root {
     --bg: #0f172a; --surface: #1e293b; --border: #334155;
@@ -19,7 +19,7 @@
   .header .subtitle { color: var(--text2); font-size: 13px; margin-top: 2px; }
   .header-actions { display: flex; gap: 8px; }
 
-  .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
 
   .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
   .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
@@ -48,16 +48,34 @@
   .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
 
   table { width: 100%; border-collapse: collapse; }
-  th { text-align: left; padding: 12px 24px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text2); background: rgba(0,0,0,0.2); }
-  td { padding: 14px 24px; border-top: 1px solid var(--border); font-size: 14px; vertical-align: middle; }
+  th { text-align: left; padding: 12px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text2); background: rgba(0,0,0,0.2); white-space: nowrap; }
+  td { padding: 14px 16px; border-top: 1px solid var(--border); font-size: 14px; vertical-align: middle; }
   tr:hover td { background: rgba(56, 189, 248, 0.03); }
 
-  .badge { display: inline-block; padding: 3px 10px; border-radius: 9999px; font-size: 11px; font-weight: 600; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 9999px; font-size: 11px; font-weight: 600; position: relative; }
   .badge-green { background: rgba(74,222,128,0.15); color: var(--green); }
   .badge-red { background: rgba(248,113,113,0.15); color: var(--red); }
   .badge-blue { background: rgba(56,189,248,0.15); color: var(--accent); }
   .badge-purple { background: rgba(167,139,250,0.15); color: var(--purple); }
   .badge-yellow { background: rgba(251,191,36,0.15); color: var(--yellow); }
+  .badge-gray { background: rgba(148,163,184,0.15); color: var(--text2); }
+
+  /* ツールチップ */
+  .tip { position: relative; cursor: help; }
+  .tip .tiptext {
+    visibility: hidden; opacity: 0;
+    position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+    background: #0f172a; color: var(--text); border: 1px solid var(--border);
+    padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 400;
+    white-space: nowrap; z-index: 50; pointer-events: none;
+    transition: opacity 0.15s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  }
+  .tip .tiptext::after {
+    content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+    border: 5px solid transparent; border-top-color: var(--border);
+  }
+  .tip:hover .tiptext { visibility: visible; opacity: 1; }
 
   .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 100; justify-content: center; align-items: center; }
   .modal-overlay.active { display: flex; }
@@ -73,16 +91,16 @@
   .key-modal textarea { color: var(--green); font-size: 12px; height: 200px; resize: none; }
   .key-modal .warning { background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.3); border-radius: 8px; padding: 12px; color: var(--yellow); font-size: 13px; margin: 16px 0; }
 
-  .toast { position: fixed; bottom: 24px; right: 24px; padding: 14px 24px; border-radius: 10px; font-size: 14px; font-weight: 500; z-index: 200; transform: translateY(100px); opacity: 0; transition: all 0.3s; }
+  .toast { position: fixed; bottom: 24px; right: 24px; padding: 14px 24px; border-radius: 10px; font-size: 14px; font-weight: 500; z-index: 200; transform: translateY(100px); opacity: 0; transition: all 0.3s; max-width: 400px; }
   .toast.show { transform: translateY(0); opacity: 1; }
   .toast.success { background: rgba(74,222,128,0.2); border: 1px solid var(--green); color: var(--green); }
   .toast.error { background: rgba(248,113,113,0.2); border: 1px solid var(--red); color: var(--red); }
 
   .empty-row td { text-align: center; color: var(--text2); padding: 40px; }
   .loading { text-align: center; padding: 40px; color: var(--text2); }
-  .dir-list { display: flex; gap: 4px; flex-wrap: wrap; }
+  .perm-list { display: flex; gap: 4px; flex-wrap: wrap; }
 
-  /* Guide */
+  /* ガイド */
   .guide { padding: 24px; }
   .guide h3 { font-size: 15px; font-weight: 600; margin: 20px 0 10px 0; color: var(--accent); }
   .guide h3:first-child { margin-top: 0; }
@@ -93,23 +111,19 @@
   .guide .guide-card { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
   .guide .guide-card h4 { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text); }
   .guide .guide-card p { font-size: 12px; margin-bottom: 0; }
-  .guide-toggle { cursor: pointer; user-select: none; }
-  .guide-toggle::after { content: ' [Hide]'; font-size: 12px; color: var(--text2); }
-  .guide-toggle.collapsed::after { content: ' [Show]'; }
 
-  /* Bulk result */
   .bulk-results { margin-top: 16px; max-height: 300px; overflow-y: auto; }
   .bulk-result-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; font-size: 13px; }
   .bulk-result-item.success { border-color: rgba(74,222,128,0.3); }
   .bulk-result-item.fail { border-color: rgba(248,113,113,0.3); }
   .bulk-result-item .name { font-weight: 600; }
   .bulk-result-item .dl-link { color: var(--green); cursor: pointer; text-decoration: underline; font-size: 12px; }
-
   .btn-actions { display: flex; gap: 6px; }
 
   @media (max-width: 768px) {
     .header { flex-direction: column; align-items: flex-start; gap: 12px; }
-    td, th { padding: 10px 12px; font-size: 12px; }
+    td, th { padding: 10px 8px; font-size: 12px; }
+    .tip .tiptext { white-space: normal; min-width: 200px; }
   }
 </style>
 </head>
@@ -117,68 +131,68 @@
 
 <div class="header">
   <div>
-    <h1><span>haregake-lab</span> Admin Panel</h1>
-    <div class="subtitle">User Management &amp; Permissions</div>
+    <h1><span>haregake-lab</span> 管理パネル</h1>
+    <div class="subtitle">ユーザー管理・権限設定</div>
   </div>
   <div class="header-actions">
-    <button class="btn btn-ghost" onclick="toggleGuide()">Usage Guide</button>
+    <button class="btn btn-ghost" onclick="toggleGuide()">使い方ガイド</button>
   </div>
 </div>
 
 <div class="container">
 
-  <!-- Usage Guide -->
+  <!-- 使い方ガイド -->
   <div class="section" id="guideSection" style="display:none;">
     <div class="section-header">
-      <h2>Usage Guide</h2>
+      <h2>使い方ガイド</h2>
     </div>
     <div class="guide">
       <div class="guide-grid">
         <div class="guide-card">
-          <h4>1. Add User (Single)</h4>
-          <p>Click <strong>+ Add User</strong>, enter a name (e.g. <code>yamada</code>), and click Create. A Linux user <code>user_yamada</code> is created with SSH key pair auto-generated. Download or copy the private key immediately.</p>
+          <h4>1. ユーザーを追加する（1人ずつ）</h4>
+          <p>「+ ユーザー追加」ボタンをクリックし、名前（例: <code>yamada</code>）を入力して「作成」を押します。Linuxユーザー <code>user_yamada</code> が作成され、SSH鍵が自動生成されます。秘密鍵をすぐにダウンロードしてください。</p>
         </div>
         <div class="guide-card">
-          <h4>2. Add Users (Bulk)</h4>
-          <p>Click <strong>Bulk Add</strong>, enter multiple names (one per line), and click Create All. SSH keys are generated for each user. Download all keys as a ZIP or individually.</p>
+          <h4>2. ユーザーを追加する（一括）</h4>
+          <p>「一括追加」ボタンをクリックし、名前を1行ずつ入力して「一括作成」を押します。全員分のSSH鍵がまとめて生成されます。個別ダウンロードまたは全件ダウンロードが可能です。</p>
         </div>
         <div class="guide-card">
-          <h4>3. Share SSH Key</h4>
-          <p>Send the downloaded private key file to the team member. They save it as <code>~/.ssh/id_ed25519</code> and connect: <code>ssh user_yamada@160.16.207.196</code></p>
+          <h4>3. SSH鍵をメンバーに渡す</h4>
+          <p>ダウンロードした秘密鍵ファイルをメンバーに送ります。メンバーは <code>~/.ssh/</code> に保存し、<code>ssh user_yamada@160.16.207.196</code> で接続できます。</p>
         </div>
         <div class="guide-card">
-          <h4>4. Permissions</h4>
-          <p><span class="badge badge-blue">sandbox</span> = All members can read/write. <span class="badge badge-purple">app1</span><span class="badge badge-purple">app2</span> = Only the assigned owner can write. Others are read-only.</p>
+          <h4>4. 権限の仕組み</h4>
+          <p><strong>sandbox</strong> = 全メンバーが読み書き可能な共有実験エリア。<strong>app1/app2</strong> = 担当者のみ書き込み可能。<strong>sudo/docker</strong> = 一般ユーザーには付与されません。</p>
         </div>
       </div>
 
-      <h3>User Connection Guide (for team members)</h3>
+      <h3>メンバー向け：SSH接続手順</h3>
       <ol>
-        <li>Receive private key file from admin (e.g. <code>user_yamada_id_ed25519</code>)</li>
-        <li>Save to <code>~/.ssh/</code> and set permissions:<br><code>chmod 600 ~/.ssh/user_yamada_id_ed25519</code></li>
-        <li>Connect to server:<br><code>ssh -i ~/.ssh/user_yamada_id_ed25519 user_yamada@160.16.207.196</code></li>
-        <li>Or add to <code>~/.ssh/config</code> for convenience:
+        <li>管理者から秘密鍵ファイル（例: <code>user_yamada_id_ed25519</code>）を受け取る</li>
+        <li><code>~/.ssh/</code> に保存してパーミッションを設定：<br><code>chmod 600 ~/.ssh/user_yamada_id_ed25519</code></li>
+        <li>サーバーに接続：<br><code>ssh -i ~/.ssh/user_yamada_id_ed25519 user_yamada@160.16.207.196</code></li>
+        <li>毎回の入力を省略するには <code>~/.ssh/config</code> に以下を追加：
           <br><code>Host haregake</code>
           <br><code>&nbsp;&nbsp;HostName 160.16.207.196</code>
           <br><code>&nbsp;&nbsp;User user_yamada</code>
           <br><code>&nbsp;&nbsp;IdentityFile ~/.ssh/user_yamada_id_ed25519</code>
-          <br>Then just run: <code>ssh haregake</code>
+          <br>以降は <code>ssh haregake</code> だけで接続可能
         </li>
       </ol>
 
-      <h3>Directory Structure</h3>
+      <h3>ディレクトリ構成</h3>
       <p><code>/var/www/app/</code></p>
       <ul>
-        <li><code>sandbox/</code> - Shared experiment area (all <code>sandbox_users</code> group members can write)</li>
-        <li><code>app1/</code> - Production app 1 (owner: <code>user_tanaka</code>)</li>
-        <li><code>app2/</code> - Production app 2 (owner: <code>user_sato</code>)</li>
+        <li><code>sandbox/</code> - 共有実験エリア（sandbox権限を持つ全員が読み書き可能）</li>
+        <li><code>app1/</code> - 本番用アプリ1（担当者のみ書き込み可）</li>
+        <li><code>app2/</code> - 本番用アプリ2（担当者のみ書き込み可）</li>
       </ul>
 
-      <h3>Deploy an App</h3>
-      <p>Admin runs: <code>sudo deploy-app sandbox</code> (or <code>app1</code>, <code>app2</code>)</p>
-      <p>This rebuilds and restarts the Docker container for that app.</p>
+      <h3>アプリのデプロイ方法</h3>
+      <p>管理者が以下を実行：<code>sudo deploy-app sandbox</code>（または <code>app1</code>, <code>app2</code>）</p>
+      <p>Dockerコンテナが再ビルド・再起動されます。</p>
 
-      <h3>Access URLs</h3>
+      <h3>アクセスURL</h3>
       <ul>
         <li><code>https://app.haregake-lab.com/sandbox/</code></li>
         <li><code>https://app.haregake-lab.com/app1/</code></li>
@@ -187,86 +201,86 @@
     </div>
   </div>
 
-  <!-- Stats -->
+  <!-- ステータスカード -->
   <div class="stats">
     <div class="stat-card">
-      <div class="label">Total Users</div>
+      <div class="label">ユーザー数</div>
       <div class="value blue" id="totalUsers">-</div>
     </div>
     <div class="stat-card">
-      <div class="label">SSH Key Registered</div>
+      <div class="label">SSH鍵 登録済み</div>
       <div class="value green" id="keyCount">-</div>
     </div>
     <div class="stat-card">
-      <div class="label">Sandbox Members</div>
+      <div class="label">sandbox メンバー</div>
       <div class="value yellow" id="sandboxCount">-</div>
     </div>
   </div>
 
-  <!-- User Table -->
+  <!-- ユーザー一覧 -->
   <div class="section">
     <div class="section-header">
-      <h2>Users</h2>
+      <h2>ユーザー一覧</h2>
       <div class="btn-actions">
-        <button class="btn btn-secondary" onclick="openBulkModal()">Bulk Add</button>
-        <button class="btn btn-primary" onclick="openCreateModal()">+ Add User</button>
+        <button class="btn btn-secondary" onclick="openBulkModal()">一括追加</button>
+        <button class="btn btn-primary" onclick="openCreateModal()">+ ユーザー追加</button>
       </div>
     </div>
-    <div id="userTable"><div class="loading">Loading...</div></div>
+    <div id="userTable"><div class="loading">読み込み中...</div></div>
   </div>
 </div>
 
-<!-- Single Create Modal -->
+<!-- 単体作成モーダル -->
 <div class="modal-overlay" id="createModal">
   <div class="modal">
-    <h3>Add New User</h3>
-    <input type="text" id="newUserName" placeholder="Enter name (e.g. yamada)" autocomplete="off" />
-    <div class="hint">user_ prefix is added automatically. Only alphanumeric and underscore allowed.</div>
+    <h3>ユーザーを追加</h3>
+    <input type="text" id="newUserName" placeholder="名前を入力（例: yamada）" autocomplete="off" />
+    <div class="hint">user_ は自動で付与されます。英数字とアンダースコアのみ使用可能です。</div>
     <div class="actions">
-      <button class="btn btn-ghost" onclick="closeCreateModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="createUser()" id="createBtn">Create</button>
+      <button class="btn btn-ghost" onclick="closeCreateModal()">キャンセル</button>
+      <button class="btn btn-primary" onclick="createUser()" id="createBtn">作成</button>
     </div>
   </div>
 </div>
 
-<!-- Bulk Create Modal -->
+<!-- 一括作成モーダル -->
 <div class="modal-overlay" id="bulkModal">
   <div class="modal">
-    <h3>Bulk Add Users</h3>
-    <p style="color:var(--text2);font-size:13px;margin-bottom:12px;">Enter one name per line. <code>user_</code> prefix is added automatically.</p>
+    <h3>ユーザーを一括追加</h3>
+    <p style="color:var(--text2);font-size:13px;margin-bottom:12px;">1行に1名ずつ名前を入力してください。<code>user_</code> は自動で付与されます。</p>
     <textarea id="bulkNames" rows="8" placeholder="tanaka&#10;sato&#10;suzuki&#10;yamada&#10;watanabe"></textarea>
-    <div class="hint">Max 50 users at once. Empty lines are ignored.</div>
+    <div class="hint">一度に最大50名まで作成できます。空行は無視されます。</div>
     <div id="bulkResults"></div>
     <div class="actions">
-      <button class="btn btn-ghost" onclick="closeBulkModal()">Close</button>
-      <button class="btn btn-secondary" id="bulkBtn" onclick="createBulkUsers()">Create All</button>
+      <button class="btn btn-ghost" onclick="closeBulkModal()">閉じる</button>
+      <button class="btn btn-secondary" id="bulkBtn" onclick="createBulkUsers()">一括作成</button>
     </div>
   </div>
 </div>
 
-<!-- Key Modal (single) -->
+<!-- 鍵表示モーダル（単体） -->
 <div class="modal-overlay key-modal" id="keyModal">
   <div class="modal">
-    <h3>SSH Private Key</h3>
-    <div class="warning">Warning: This key is shown only once. Please copy or download it now.</div>
+    <h3>SSH秘密鍵</h3>
+    <div class="warning">この鍵は今回のみ表示されます。必ずダウンロードまたはコピーしてください。</div>
     <textarea id="keyContent" readonly></textarea>
     <div class="actions" style="margin-top:16px">
-      <button class="btn btn-download" onclick="downloadKey()">Download</button>
-      <button class="btn btn-ghost" onclick="copyKey()">Copy</button>
-      <button class="btn btn-primary" onclick="closeKeyModal()">Close</button>
+      <button class="btn btn-download" onclick="downloadKey()">ダウンロード</button>
+      <button class="btn btn-ghost" onclick="copyKey()">コピー</button>
+      <button class="btn btn-primary" onclick="closeKeyModal()">閉じる</button>
     </div>
   </div>
 </div>
 
-<!-- Bulk Keys Modal -->
+<!-- 鍵表示モーダル（一括） -->
 <div class="modal-overlay key-modal" id="bulkKeyModal">
   <div class="modal">
-    <h3>Bulk Created - SSH Keys</h3>
-    <div class="warning">Warning: These keys are shown only once. Download all keys now.</div>
+    <h3>一括作成完了 - SSH鍵</h3>
+    <div class="warning">これらの鍵は今回のみ表示されます。すべてダウンロードしてください。</div>
     <div id="bulkKeyList" class="bulk-results"></div>
     <div class="actions" style="margin-top:16px">
-      <button class="btn btn-download" onclick="downloadAllKeys()">Download All (.zip)</button>
-      <button class="btn btn-primary" onclick="closeBulkKeyModal()">Close</button>
+      <button class="btn btn-download" onclick="downloadAllKeys()">全件ダウンロード</button>
+      <button class="btn btn-primary" onclick="closeBulkKeyModal()">閉じる</button>
     </div>
   </div>
 </div>
@@ -279,11 +293,11 @@ let currentKeyUser = '';
 let currentKeyContent = '';
 let bulkKeyData = [];
 
-// ===== Load Users =====
+// ===== ユーザー読み込み =====
 async function loadUsers() {
   try {
     const res = await fetch(BASE + '/api/users');
-    if (!res.ok) throw new Error('API error: ' + res.status);
+    if (!res.ok) throw new Error('APIエラー: ' + res.status);
     const users = await res.json();
     renderUsers(users);
     document.getElementById('totalUsers').textContent = users.length;
@@ -292,61 +306,86 @@ async function loadUsers() {
   } catch(e) {
     console.error('loadUsers error:', e);
     document.getElementById('userTable').innerHTML =
-      '<div class="loading" style="color:var(--red)">Loading Error: ' + e.message + '</div>';
+      '<div class="loading" style="color:var(--red)">読み込みエラー: ' + e.message + '</div>';
   }
 }
 
 function renderUsers(users) {
   if (users.length === 0) {
     document.getElementById('userTable').innerHTML =
-      '<table><tr class="empty-row"><td colspan="6">No users registered yet. Click "+ Add User" to get started.</td></tr></table>';
+      '<table><tr class="empty-row"><td colspan="7">ユーザーがまだ登録されていません。「+ ユーザー追加」で作成してください。</td></tr></table>';
     return;
   }
 
   let html = '<table><thead><tr>' +
-    '<th>Username</th><th>SSH Key</th><th>Groups</th>' +
-    '<th>Owned Dirs</th><th>Status</th><th>Actions</th>' +
+    '<th>ユーザー名</th><th>SSH鍵</th><th>権限</th>' +
+    '<th>担当ディレクトリ</th><th>認証方式</th><th>セキュリティ</th><th>操作</th>' +
     '</tr></thead><tbody>';
 
   for (const u of users) {
+    // SSH鍵
     const keyBadge = u.hasKey
-      ? '<span class="badge badge-green">Registered</span>'
-      : '<span class="badge badge-red">Not Set</span>';
+      ? '<span class="tip"><span class="badge badge-green">登録済</span><span class="tiptext">SSH公開鍵がサーバーに登録されており、鍵認証でSSH接続が可能です</span></span>'
+      : '<span class="tip"><span class="badge badge-red">未登録</span><span class="tiptext">SSH公開鍵が未登録のため、このユーザーではまだSSH接続できません</span></span>';
 
-    const sandboxBadge = u.inSandbox
-      ? '<span class="badge badge-blue">sandbox</span>'
-      : '';
+    // 権限バッジ
+    let perms = '<div class="perm-list">';
+    if (u.inSandbox) {
+      perms += '<span class="tip"><span class="badge badge-blue">sandbox</span><span class="tiptext">sandbox ディレクトリ（/var/www/app/sandbox/）への読み書きが可能です</span></span>';
+    }
+    if (u.ownedDirs.length > 0) {
+      for (const d of u.ownedDirs) {
+        perms += '<span class="tip"><span class="badge badge-purple">' + d + ' 担当</span><span class="tiptext">/var/www/app/' + d + '/ の所有者です。このディレクトリへの書き込み権限があります</span></span>';
+      }
+    }
+    if (!u.inSandbox && u.ownedDirs.length === 0) {
+      perms += '<span class="tip"><span class="badge badge-gray">なし</span><span class="tiptext">現在このユーザーに割り当てられた特別な権限はありません</span></span>';
+    }
+    perms += '</div>';
 
+    // 担当ディレクトリ
     const dirs = u.ownedDirs.length > 0
-      ? '<div class="dir-list">' + u.ownedDirs.map(d => '<span class="badge badge-purple">' + d + '</span>').join('') + '</div>'
+      ? '<div class="perm-list">' + u.ownedDirs.map(d => '<span class="badge badge-purple">' + d + '</span>').join('') + '</div>'
       : '<span style="color:var(--text2)">-</span>';
 
-    const status = u.locked
-      ? '<span class="badge badge-green">Key Auth Only</span>'
-      : '<span class="badge badge-yellow">PW Enabled</span>';
+    // 認証方式
+    const authBadge = u.locked
+      ? '<span class="tip"><span class="badge badge-green">鍵認証のみ</span><span class="tiptext">パスワードはロック済みです。SSH鍵でのみログインできます（セキュリティ推奨設定）</span></span>'
+      : '<span class="tip"><span class="badge badge-yellow">パスワード有効</span><span class="tiptext">パスワードによるログインが可能な状態です。セキュリティ上、鍵認証のみにすることを推奨します</span></span>';
+
+    // セキュリティ（sudo / docker）
+    let secBadges = '<div class="perm-list">';
+    secBadges += u.hasSudo
+      ? '<span class="tip"><span class="badge badge-red">sudo 有</span><span class="tiptext">root権限でコマンドを実行できます。一般ユーザーには非推奨です</span></span>'
+      : '<span class="tip"><span class="badge badge-green">sudo 無</span><span class="tiptext">root権限はありません。サーバーのシステム設定を変更することはできません（安全）</span></span>';
+    secBadges += u.hasDocker
+      ? '<span class="tip"><span class="badge badge-red">docker 有</span><span class="tiptext">Dockerコマンドを実行できます。実質root相当の権限を持つため、一般ユーザーには非推奨です</span></span>'
+      : '<span class="tip"><span class="badge badge-green">docker 無</span><span class="tiptext">Dockerコマンドは使用できません。コンテナ操作は管理者が行います（安全）</span></span>';
+    secBadges += '</div>';
 
     html += '<tr>';
     html += '<td><strong>' + u.username + '</strong><br><span style="color:var(--text2);font-size:12px">UID: ' + u.uid + '</span></td>';
     html += '<td>' + keyBadge + '</td>';
-    html += '<td>' + sandboxBadge + '</td>';
+    html += '<td>' + perms + '</td>';
     html += '<td>' + dirs + '</td>';
-    html += '<td>' + status + '</td>';
+    html += '<td>' + authBadge + '</td>';
+    html += '<td>' + secBadges + '</td>';
     html += '<td><div class="btn-actions">';
-    if (u.hasKey) html += '<button class="btn btn-download btn-sm" onclick="downloadUserKey(\'' + u.username + '\')">Key DL</button>';
-    html += '<button class="btn btn-danger btn-sm" onclick="deleteUser(\'' + u.username + '\')">Delete</button>';
+    if (u.hasKey) html += '<button class="btn btn-download btn-sm" onclick="downloadUserKey(\'' + u.username + '\')">鍵DL</button>';
+    html += '<button class="btn btn-danger btn-sm" onclick="deleteUser(\'' + u.username + '\')">削除</button>';
     html += '</div></td></tr>';
   }
   html += '</tbody></table>';
   document.getElementById('userTable').innerHTML = html;
 }
 
-// ===== Guide Toggle =====
+// ===== ガイド開閉 =====
 function toggleGuide() {
   const s = document.getElementById('guideSection');
   s.style.display = s.style.display === 'none' ? 'block' : 'none';
 }
 
-// ===== Single Create =====
+// ===== 単体作成 =====
 function openCreateModal() {
   document.getElementById('createModal').classList.add('active');
   document.getElementById('newUserName').value = '';
@@ -358,7 +397,7 @@ async function createUser() {
   const name = document.getElementById('newUserName').value.trim();
   if (!name) return;
   const btn = document.getElementById('createBtn');
-  btn.disabled = true; btn.textContent = 'Creating...';
+  btn.disabled = true; btn.textContent = '作成中...';
   try {
     const res = await fetch(BASE + '/api/users', {
       method: 'POST',
@@ -377,13 +416,13 @@ async function createUser() {
     }
     loadUsers();
   } catch(e) {
-    showToast('Network error: ' + e.message, 'error');
+    showToast('通信エラー: ' + e.message, 'error');
   } finally {
-    btn.disabled = false; btn.textContent = 'Create';
+    btn.disabled = false; btn.textContent = '作成';
   }
 }
 
-// ===== Bulk Create =====
+// ===== 一括作成 =====
 function openBulkModal() {
   document.getElementById('bulkModal').classList.add('active');
   document.getElementById('bulkNames').value = '';
@@ -399,8 +438,8 @@ async function createBulkUsers() {
   if (names.length === 0) return;
 
   const btn = document.getElementById('bulkBtn');
-  btn.disabled = true; btn.textContent = 'Creating...';
-  document.getElementById('bulkResults').innerHTML = '<div class="loading">Processing ' + names.length + ' users...</div>';
+  btn.disabled = true; btn.textContent = '作成中...';
+  document.getElementById('bulkResults').innerHTML = '<div class="loading">' + names.length + ' 名を処理中...</div>';
 
   try {
     const res = await fetch(BASE + '/api/users/bulk', {
@@ -413,25 +452,23 @@ async function createBulkUsers() {
 
     showToast(data.message, 'success');
 
-    // Show results in modal
     let html = '';
     for (const r of data.results) {
       if (r.success) {
-        html += '<div class="bulk-result-item success"><span class="name">' + r.username + '</span><span class="badge badge-green">Created</span></div>';
+        html += '<div class="bulk-result-item success"><span class="name">' + r.username + '</span><span class="badge badge-green">作成済</span></div>';
       } else {
         html += '<div class="bulk-result-item fail"><span class="name">' + (r.username || r.name) + '</span><span class="badge badge-red">' + r.error + '</span></div>';
       }
     }
     document.getElementById('bulkResults').innerHTML = html;
 
-    // Show key download modal
     bulkKeyData = data.results.filter(r => r.success && r.privateKey);
     if (bulkKeyData.length > 0) {
       let keyHtml = '';
       for (const r of bulkKeyData) {
         keyHtml += '<div class="bulk-result-item success">' +
           '<span class="name">' + r.username + '</span>' +
-          '<span class="dl-link" onclick="downloadSingleBulkKey(\'' + r.username + '\')">Download Key</span>' +
+          '<span class="dl-link" onclick="downloadSingleBulkKey(\'' + r.username + '\')">鍵をダウンロード</span>' +
           '</div>';
       }
       document.getElementById('bulkKeyList').innerHTML = keyHtml;
@@ -440,13 +477,12 @@ async function createBulkUsers() {
         document.getElementById('bulkKeyModal').classList.add('active');
       }, 1500);
     }
-
     loadUsers();
   } catch(e) {
-    showToast('Network error: ' + e.message, 'error');
+    showToast('通信エラー: ' + e.message, 'error');
     document.getElementById('bulkResults').innerHTML = '';
   } finally {
-    btn.disabled = false; btn.textContent = 'Create All';
+    btn.disabled = false; btn.textContent = '一括作成';
   }
 }
 
@@ -459,30 +495,29 @@ function downloadSingleBulkKey(username) {
 }
 
 function downloadAllKeys() {
-  // Simple: download each key as individual file (no zip library needed)
   for (const r of bulkKeyData) {
     const blob = new Blob([r.privateKey], { type: 'application/octet-stream' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
     a.download = r.username + '_id_ed25519'; a.click();
   }
-  showToast(bulkKeyData.length + ' keys downloaded', 'success');
+  showToast(bulkKeyData.length + ' 件の鍵をダウンロードしました', 'success');
 }
 
 function closeBulkKeyModal() { document.getElementById('bulkKeyModal').classList.remove('active'); }
 
-// ===== Delete =====
+// ===== 削除 =====
 async function deleteUser(username) {
-  if (!confirm('Delete ' + username + '?\nHome directory will also be removed.')) return;
+  if (!confirm(username + ' を削除しますか？\nホームディレクトリも削除されます。')) return;
   try {
     const res = await fetch(BASE + '/api/users/' + username, { method: 'DELETE' });
     const data = await res.json();
     if (!res.ok) { showToast(data.error, 'error'); return; }
     showToast(data.message, 'success');
     loadUsers();
-  } catch(e) { showToast('Network error: ' + e.message, 'error'); }
+  } catch(e) { showToast('通信エラー: ' + e.message, 'error'); }
 }
 
-// ===== Key Download =====
+// ===== 鍵ダウンロード =====
 function downloadUserKey(username) {
   window.location.href = BASE + '/api/users/' + username + '/key';
 }
@@ -494,19 +529,19 @@ function downloadKey() {
 }
 
 function copyKey() {
-  navigator.clipboard.writeText(currentKeyContent).then(() => showToast('Copied!', 'success'));
+  navigator.clipboard.writeText(currentKeyContent).then(() => showToast('コピーしました', 'success'));
 }
 
 function closeKeyModal() { document.getElementById('keyModal').classList.remove('active'); }
 
-// ===== Toast =====
+// ===== トースト =====
 function showToast(msg, type) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.className = 'toast ' + type + ' show';
   setTimeout(() => t.classList.remove('show'), 3000);
 }
 
-// ===== Keyboard Shortcuts =====
+// ===== キーボードショートカット =====
 document.getElementById('newUserName').addEventListener('keydown', e => {
   if (e.key === 'Enter') createUser();
 });
@@ -516,7 +551,7 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// ===== Init =====
+// ===== 初期化 =====
 loadUsers();
 </script>
 </body>

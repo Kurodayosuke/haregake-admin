@@ -79,9 +79,24 @@ app.get('/api/users', (req, res) => {
         locked = status.includes(' L ') || status.includes(' LK ');
       } catch (e) { /* ignore */ }
 
+      // sudo権限チェック
+      let hasSudo = false;
+      try {
+        const sudoers = hostExec(`groups ${username}`);
+        hasSudo = sudoers.includes('sudo') || sudoers.includes('admin');
+      } catch (e) { /* ignore */ }
+
+      // dockerグループチェック
+      let hasDocker = false;
+      try {
+        const dockerMembers = hostExec('getent group docker');
+        hasDocker = dockerMembers.includes(username);
+      } catch (e) { /* ignore */ }
+
       users.push({
         username, uid, homeDir, groups,
         hasKey, ownedDirs, inSandbox, locked,
+        hasSudo, hasDocker,
         createdLabel: locked ? 'パスワードロック済（鍵認証のみ）' : 'パスワード有効'
       });
     }
