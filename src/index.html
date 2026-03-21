@@ -138,45 +138,44 @@
 
   <div id="smtpWarn" class="smtp-warn">⚠ SMTP（メール送信）が設定されていません。メールのプレビューは可能ですが、送信にはdocker-compose.ymlでSMTP設定が必要です。</div>
 
-  <!-- サーバー監視 -->
-  <div class="gauge-row" id="sysGauges">
-    <div class="gauge-card">
-      <div class="gauge-label">CPU使用率</div>
-      <div class="gauge-val" id="cpuVal">-%</div>
-      <div class="gauge-bar"><div class="gauge-fill g-green" id="cpuBar" style="width:0%"></div></div>
-      <div class="gauge-sub" id="cpuSub">読み込み中...</div>
-    </div>
-    <div class="gauge-card">
-      <div class="gauge-label">メモリ使用率</div>
-      <div class="gauge-val" id="memVal">-%</div>
-      <div class="gauge-bar"><div class="gauge-fill g-green" id="memBar" style="width:0%"></div></div>
-      <div class="gauge-sub" id="memSub">読み込み中...</div>
-    </div>
-    <div class="gauge-card">
-      <div class="gauge-label">ディスク使用率</div>
-      <div class="gauge-val" id="diskVal">-%</div>
-      <div class="gauge-bar"><div class="gauge-fill g-green" id="diskBar" style="width:0%"></div></div>
-      <div class="gauge-sub" id="diskSub">読み込み中...</div>
-    </div>
-    <div class="gauge-card">
-      <div class="gauge-label">稼働時間</div>
-      <div class="gauge-val blue" id="uptimeVal" style="font-size:16px">-</div>
-      <div class="gauge-sub" id="loadSub">-</div>
-    </div>
-  </div>
-
-  <!-- アプリ死活監視 -->
+  <!-- 1. ユーザー一覧 -->
   <div class="section">
     <div class="section-header">
-      <h2>アプリ死活監視</h2>
-      <button class="btn btn-ghost btn-sm" onclick="loadHealth()">更新</button>
+      <h2>ユーザー一覧</h2>
+      <div class="btn-actions">
+        <button class="btn btn-secondary" onclick="openBulkModal()">一括追加</button>
+        <button class="btn btn-primary" onclick="openCreateModal()">+ ユーザー追加</button>
+      </div>
     </div>
-    <div class="health-grid" id="healthGrid">
-      <div class="loading">チェック中...</div>
+    <div id="userTable"><div class="loading">読み込み中...</div></div>
+  </div>
+
+  <!-- 2. 統計 -->
+  <div class="stats">
+    <div class="stat-card"><div class="label">ユーザー数</div><div class="value blue" id="totalUsers">-</div></div>
+    <div class="stat-card"><div class="label">SSH鍵 登録済み</div><div class="value green" id="keyCount">-</div></div>
+    <div class="stat-card"><div class="label">メール送信済み</div><div class="value yellow" id="emailCount">-</div></div>
+  </div>
+
+  <!-- 3. ファイルブラウザ -->
+  <div class="section">
+    <div class="section-header">
+      <h2>ファイルブラウザ</h2>
+      <div class="btn-actions">
+        <button class="btn btn-ghost btn-sm" onclick="browseDir('/var/www/app')">/var/www/app</button>
+        <button class="btn btn-ghost btn-sm" onclick="browseDir('/home')">/home</button>
+      </div>
+    </div>
+    <div id="fileBrowser" style="display:none">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="browseParent()" id="fbUp">↑ 上へ</button>
+        <span id="fbPath" style="font-family:monospace;font-size:13px;color:var(--accent);word-break:break-all"></span>
+      </div>
+      <div id="fbEntries"></div>
     </div>
   </div>
 
-  <!-- Dockerコンテナ管理 + デプロイ -->
+  <!-- 4. コンテナ管理・デプロイ -->
   <div class="section">
     <div class="section-header">
       <h2>コンテナ管理・デプロイ</h2>
@@ -206,42 +205,44 @@
     </div>
   </div>
 
-  <!-- 統計 -->
-  <div class="stats">
-    <div class="stat-card"><div class="label">ユーザー数</div><div class="value blue" id="totalUsers">-</div></div>
-    <div class="stat-card"><div class="label">SSH鍵 登録済み</div><div class="value green" id="keyCount">-</div></div>
-    <div class="stat-card"><div class="label">メール送信済み</div><div class="value yellow" id="emailCount">-</div></div>
-  </div>
-
-  <!-- ファイルブラウザ -->
+  <!-- 5. アプリ死活監視 -->
   <div class="section">
     <div class="section-header">
-      <h2>ファイルブラウザ</h2>
-      <div class="btn-actions">
-        <button class="btn btn-ghost btn-sm" onclick="browseDir('/var/www/app')">/var/www/app</button>
-        <button class="btn btn-ghost btn-sm" onclick="browseDir('/home')">/home</button>
-      </div>
+      <h2>アプリ死活監視</h2>
+      <button class="btn btn-ghost btn-sm" onclick="loadHealth()">更新</button>
     </div>
-    <div id="fileBrowser" style="display:none">
-      <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-ghost btn-sm" onclick="browseParent()" id="fbUp">↑ 上へ</button>
-        <span id="fbPath" style="font-family:monospace;font-size:13px;color:var(--accent);word-break:break-all"></span>
-      </div>
-      <div id="fbEntries"></div>
+    <div class="health-grid" id="healthGrid">
+      <div class="loading">チェック中...</div>
     </div>
   </div>
 
-  <!-- ユーザー一覧 -->
-  <div class="section">
-    <div class="section-header">
-      <h2>ユーザー一覧</h2>
-      <div class="btn-actions">
-        <button class="btn btn-secondary" onclick="openBulkModal()">一括追加</button>
-        <button class="btn btn-primary" onclick="openCreateModal()">+ ユーザー追加</button>
-      </div>
+  <!-- 6. サーバー監視 -->
+  <div class="gauge-row" id="sysGauges">
+    <div class="gauge-card">
+      <div class="gauge-label">CPU使用率</div>
+      <div class="gauge-val" id="cpuVal">-%</div>
+      <div class="gauge-bar"><div class="gauge-fill g-green" id="cpuBar" style="width:0%"></div></div>
+      <div class="gauge-sub" id="cpuSub">読み込み中...</div>
     </div>
-    <div id="userTable"><div class="loading">読み込み中...</div></div>
+    <div class="gauge-card">
+      <div class="gauge-label">メモリ使用率</div>
+      <div class="gauge-val" id="memVal">-%</div>
+      <div class="gauge-bar"><div class="gauge-fill g-green" id="memBar" style="width:0%"></div></div>
+      <div class="gauge-sub" id="memSub">読み込み中...</div>
+    </div>
+    <div class="gauge-card">
+      <div class="gauge-label">ディスク使用率</div>
+      <div class="gauge-val" id="diskVal">-%</div>
+      <div class="gauge-bar"><div class="gauge-fill g-green" id="diskBar" style="width:0%"></div></div>
+      <div class="gauge-sub" id="diskSub">読み込み中...</div>
+    </div>
+    <div class="gauge-card">
+      <div class="gauge-label">稼働時間</div>
+      <div class="gauge-val blue" id="uptimeVal" style="font-size:16px">-</div>
+      <div class="gauge-sub" id="loadSub">-</div>
+    </div>
   </div>
+
 </div>
 
 <!-- 作成モーダル -->
