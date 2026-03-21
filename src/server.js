@@ -871,6 +871,175 @@ app.get('/api/files/read', (req, res) => {
   }
 });
 
+// ===== API: サーバー監視 =====
+app.get('/api/system', (req, res) => {
+  try {
+    // CPU使用率
+    let cpuUsage = 0;
+    try {
+      const cpuLine = hostExec("top -bn1 | grep 'Cpu(s)' | awk '{print $2}'");
+      cpuUsage = parseFloat(cpuLine) || 0;
+    } catch (e) {}
+
+    // メモリ
+    let memTotal = 0, memUsed = 0, memPercent = 0;
+    try {
+      const memInfo = hostExec("free -b | grep Mem");
+      const parts = memInfo.split(/\s+/);
+      memTotal = parseInt(parts[1]) || 0;
+      memUsed = parseInt(parts[2]) || 0;
+      memPercent = memTotal > 0 ? Math.round((memUsed / memTotal) * 100) : 0;
+    } catch (e) {}
+
+    // ディスク
+    let diskTotal = 0, diskUsed = 0, diskPercent = 0;
+    try {
+      const diskInfo = hostExec("df -B1 / | tail -1");
+      const parts = diskInfo.split(/\s+/);
+      diskTotal = parseInt(parts[1]) || 0;
+      diskUsed = parseInt(parts[2]) || 0;
+      diskPercent = parseInt(parts[4]) || 0;
+    } catch (e) {}
+
+    // 稼働時間
+    let uptime = '';
+    try { uptime = hostExec("uptime -p"); } catch (e) {}
+
+    // ロードアベレージ
+    let loadAvg = '';
+    try { loadAvg = hostExec("cat /proc/loadavg | awk '{print $1, $2, $3}'"); } catch (e) {}
+
+    res.json({
+      cpu: { percent: cpuUsage },
+      memory: { total: memTotal, used: memUsed, percent: memPercent },
+      disk: { total: diskTotal, used: diskUsed, percent: diskPercent },
+      uptime,
+      loadAvg,
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ===== API: Dockerコンテナ管理 =====
+app.get('/api/containers', (req, res) => {
+  try {
+    let raw;
+    try {
+      raw = hostExec("docker ps -a --format '{{.ID}}\\t{{.Names}}\\t{{.Status}}\\t{{.Ports}}\\t{{.Image}}\\t{{.CreatedAt}}'");
+    } catch (e) {
+      return res.json([]);
+    }
+    const containers = [];
+    for (const line of raw.split('\n')) {
+      if (!line.trim()) continue;
+      const [id, name, status, ports, image, created] = line.split('\t');
+      const isRunning = status.startsWith('Up');
+      containers.push({ id: id.substring(0, 12), name, status, ports, image, created, isRunning });
+    }
+    res.json(containers);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/containers/:name/restart', (req, res) => {
+  try {
+    const { name } = req.params;
+    // admin_panel自身の再起動は禁止
+    if (name === 'admin_panel') {
+      return res.status(400).json({ error: '管理パネル自身は再起動できません' });
+    }
+    hostExec(`docker restart ${name}`);
+    res.json({ success: true, message: `${name} を再起動しました` });
+  } catch (e) {
+    res.status(500).json({ error: `再起動失敗: ${e.message}` });
+  }
+});
+
+app.post('/api/containers/:name/stop', (req, res) => {
+  try {
+    const { name } = req.params;
+    if (name === 'admin_panel') {
+      return res.status(400).json({ error: '管理パネル自身は停止できません' });
+    }
+    hostExec(`docker stop ${name}`);
+    res.json({ success: true, message: `${name} を停止しました` });
+  } catch (e) {
+    res.status(500).json({ error: `停止失敗: ${e.message}` });
+  }
+});
+
+app.post('/api/containers/:name/start', (req, res) => {
+  try {
+    const { name } = req.params;
+    hostExec(`docker start ${name}`);
+    res.json({ success: true, message: `${name} を起動しました` });
+  } catch (e) {
+    res.status(500).json({ error: `起動失敗: ${e.message}` });
+  }
+});
+
+app.get('/api/containers/:name/logs', (req, res) => {
+  try {
+    const { name } = req.params;
+    const lines = req.query.lines || 50;
+    const logs = hostExec(`docker logs --tail ${lines} ${name} 2>&1`);
+    res.json({ name, logs });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ===== API: ワンクリックデプロイ =====
+app.post('/api/deploy/:app', (req, res) => {
+  try {
+    const { app: appName } = req.params;
+    const allowed = ['sandbox', 'app1', 'app2'];
+    if (!allowed.includes(appName)) {
+      return res.status(400).json({ error: `${appName} はデプロイ対象ではありません（${allowed.join(', ')} のみ）` });
+    }
+    const dir = `/var/www/app/${appName}`;
+    const output = hostExec(`cd ${dir} && docker compose down --remove-orphans 2>&1 && docker compose up -d --build 2>&1`);
+    res.json({ success: true, message: `${appName} のデプロイが完了しました`, output });
+  } catch (e) {
+    res.status(500).json({ error: `デプロイ失敗: ${e.message}` });
+  }
+});
+
+// ===== API: アプリ死活監視 =====
+app.get('/api/health', (req, res) => {
+  try {
+    const apps = [
+      { name: 'sandbox', url: 'http://127.0.0.1:3001/', path: '/sandbox/' },
+      { name: 'app1', url: 'http://127.0.0.1:3002/', path: '/app1/' },
+      { name: 'app2', url: 'http://127.0.0.1:3003/', path: '/app2/' },
+      { name: 'admin', url: 'http://127.0.0.1:3004/', path: '/admin/' },
+      { name: 'gitea', url: 'http://127.0.0.1:3000/', path: '(git.haregake-lab.com)' },
+    ];
+
+    const results = [];
+    for (const app of apps) {
+      let status = 'down';
+      let httpCode = 0;
+      let responseTime = 0;
+      try {
+        const startMs = Date.now();
+        const curlOut = hostExec(`curl -so /dev/null -w '%{http_code}' --connect-timeout 3 --max-time 5 ${app.url} 2>/dev/null`);
+        responseTime = Date.now() - startMs;
+        httpCode = parseInt(curlOut) || 0;
+        if (httpCode >= 200 && httpCode < 500) status = 'up';
+      } catch (e) {
+        status = 'down';
+      }
+      results.push({ ...app, status, httpCode, responseTime });
+    }
+    res.json(results);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ===== フロントエンド =====
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));

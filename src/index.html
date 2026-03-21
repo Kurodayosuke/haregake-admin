@@ -73,6 +73,34 @@
   .guide .gc{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px}
   .guide .gc h4{font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text)}.guide .gc p{font-size:12px;margin-bottom:0}
   .smtp-warn{background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:8px;padding:12px 16px;color:var(--red);font-size:13px;margin-bottom:16px;display:none}
+  .gauge-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:16px}
+  .gauge-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px}
+  .gauge-label{font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+  .gauge-bar{height:8px;background:var(--bg);border-radius:4px;overflow:hidden;margin:8px 0}
+  .gauge-fill{height:100%;border-radius:4px;transition:width .5s}
+  .gauge-val{font-size:24px;font-weight:700}
+  .gauge-sub{font-size:11px;color:var(--text2);margin-top:2px}
+  .g-green{background:var(--green)}.g-yellow{background:var(--yellow)}.g-red{background:var(--red)}
+  .health-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;padding:16px}
+  .health-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center}
+  .health-dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px}
+  .health-dot.up{background:var(--green);box-shadow:0 0 8px rgba(74,222,128,.5)}
+  .health-dot.down{background:var(--red);box-shadow:0 0 8px rgba(248,113,113,.5)}
+  .health-name{font-weight:600;font-size:14px}
+  .health-path{font-size:11px;color:var(--text2);font-family:monospace;margin-top:4px}
+  .health-time{font-size:11px;color:var(--text2);margin-top:6px}
+  .ct-row{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);gap:10px;font-size:13px;flex-wrap:wrap}
+  .ct-row:last-child{border-bottom:none}
+  .ct-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .ct-dot.running{background:var(--green)}.ct-dot.stopped{background:var(--red)}
+  .ct-name{font-weight:600;min-width:120px}
+  .ct-status{color:var(--text2);font-size:12px;min-width:100px}
+  .ct-image{color:var(--text2);font-size:11px;font-family:monospace;flex:1;min-width:100px}
+  .ct-actions{display:flex;gap:4px;flex-shrink:0}
+  .log-box{background:var(--bg);color:var(--green);font-family:monospace;font-size:11px;padding:12px;border-radius:8px;max-height:300px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;margin-top:12px;line-height:1.5}
+  .deploy-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;padding:16px}
+  .deploy-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:20px;text-align:center}
+  .deploy-card h4{margin-bottom:12px;font-size:14px}
   .fb-row{display:flex;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;gap:10px;font-size:13px;transition:background .1s}
   .fb-row:hover{background:rgba(56,189,248,.05)}
   .fb-icon{width:20px;text-align:center;font-size:16px;flex-shrink:0}
@@ -109,6 +137,74 @@
   </div>
 
   <div id="smtpWarn" class="smtp-warn">⚠ SMTP（メール送信）が設定されていません。メールのプレビューは可能ですが、送信にはdocker-compose.ymlでSMTP設定が必要です。</div>
+
+  <!-- サーバー監視 -->
+  <div class="gauge-row" id="sysGauges">
+    <div class="gauge-card">
+      <div class="gauge-label">CPU使用率</div>
+      <div class="gauge-val" id="cpuVal">-%</div>
+      <div class="gauge-bar"><div class="gauge-fill g-green" id="cpuBar" style="width:0%"></div></div>
+      <div class="gauge-sub" id="cpuSub">読み込み中...</div>
+    </div>
+    <div class="gauge-card">
+      <div class="gauge-label">メモリ使用率</div>
+      <div class="gauge-val" id="memVal">-%</div>
+      <div class="gauge-bar"><div class="gauge-fill g-green" id="memBar" style="width:0%"></div></div>
+      <div class="gauge-sub" id="memSub">読み込み中...</div>
+    </div>
+    <div class="gauge-card">
+      <div class="gauge-label">ディスク使用率</div>
+      <div class="gauge-val" id="diskVal">-%</div>
+      <div class="gauge-bar"><div class="gauge-fill g-green" id="diskBar" style="width:0%"></div></div>
+      <div class="gauge-sub" id="diskSub">読み込み中...</div>
+    </div>
+    <div class="gauge-card">
+      <div class="gauge-label">稼働時間</div>
+      <div class="gauge-val blue" id="uptimeVal" style="font-size:16px">-</div>
+      <div class="gauge-sub" id="loadSub">-</div>
+    </div>
+  </div>
+
+  <!-- アプリ死活監視 -->
+  <div class="section">
+    <div class="section-header">
+      <h2>アプリ死活監視</h2>
+      <button class="btn btn-ghost btn-sm" onclick="loadHealth()">更新</button>
+    </div>
+    <div class="health-grid" id="healthGrid">
+      <div class="loading">チェック中...</div>
+    </div>
+  </div>
+
+  <!-- Dockerコンテナ管理 + デプロイ -->
+  <div class="section">
+    <div class="section-header">
+      <h2>コンテナ管理・デプロイ</h2>
+      <button class="btn btn-ghost btn-sm" onclick="loadContainers()">更新</button>
+    </div>
+    <div class="deploy-grid">
+      <div class="deploy-card">
+        <h4>sandbox</h4>
+        <button class="btn btn-primary btn-sm" onclick="deployApp('sandbox')">デプロイ</button>
+      </div>
+      <div class="deploy-card">
+        <h4>app1</h4>
+        <button class="btn btn-primary btn-sm" onclick="deployApp('app1')">デプロイ</button>
+      </div>
+      <div class="deploy-card">
+        <h4>app2</h4>
+        <button class="btn btn-primary btn-sm" onclick="deployApp('app2')">デプロイ</button>
+      </div>
+    </div>
+    <div id="containerList"><div class="loading">読み込み中...</div></div>
+    <div id="containerLogs" style="display:none;padding:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong id="logTitle">ログ</strong>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('containerLogs').style.display='none'">閉じる</button>
+      </div>
+      <div class="log-box" id="logContent"></div>
+    </div>
+  </div>
 
   <!-- 統計 -->
   <div class="stats">
@@ -440,6 +536,115 @@ function showToast(m,t){const el=document.getElementById('toast');el.textContent
 document.getElementById('newEmail').addEventListener('keydown',e=>{if(e.key==='Enter')createUser()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){for(const id of['createModal','bulkModal','keyModal','bulkKeyModal','emailModal','fileModal'])closeModal(id)}});
 
+// ===== サーバー監視 =====
+function gaugeColor(p){return p>=90?'g-red':p>=70?'g-yellow':'g-green'}
+function fmtBytes(b){if(!b)return '0B';if(b<1073741824)return (b/1048576).toFixed(0)+'MB';return (b/1073741824).toFixed(1)+'GB'}
+
+async function loadSystem(){
+  try{
+    const r=await fetch(B+'/api/system');const d=await r.json();
+    document.getElementById('cpuVal').textContent=d.cpu.percent.toFixed(1)+'%';
+    document.getElementById('cpuBar').style.width=d.cpu.percent+'%';
+    document.getElementById('cpuBar').className='gauge-fill '+gaugeColor(d.cpu.percent);
+    document.getElementById('cpuSub').textContent='負荷平均: '+d.loadAvg;
+
+    document.getElementById('memVal').textContent=d.memory.percent+'%';
+    document.getElementById('memBar').style.width=d.memory.percent+'%';
+    document.getElementById('memBar').className='gauge-fill '+gaugeColor(d.memory.percent);
+    document.getElementById('memSub').textContent=fmtBytes(d.memory.used)+' / '+fmtBytes(d.memory.total);
+
+    document.getElementById('diskVal').textContent=d.disk.percent+'%';
+    document.getElementById('diskBar').style.width=d.disk.percent+'%';
+    document.getElementById('diskBar').className='gauge-fill '+gaugeColor(d.disk.percent);
+    document.getElementById('diskSub').textContent=fmtBytes(d.disk.used)+' / '+fmtBytes(d.disk.total);
+
+    document.getElementById('uptimeVal').textContent=d.uptime.replace('up ','');
+    document.getElementById('loadSub').textContent='負荷平均: '+d.loadAvg;
+  }catch(e){console.error('loadSystem:',e)}
+}
+
+// ===== アプリ死活監視 =====
+async function loadHealth(){
+  try{
+    const r=await fetch(B+'/api/health');const d=await r.json();
+    let h='';
+    for(const a of d){
+      const dot=a.status==='up'?'up':'down';
+      const label=a.status==='up'?'正常':'停止';
+      const code=a.httpCode?'HTTP '+a.httpCode:'接続不可';
+      const time=a.responseTime?a.responseTime+'ms':'';
+      h+=`<div class="health-card">
+        <div><span class="health-dot ${dot}"></span><span class="health-name">${a.name}</span></div>
+        <div class="health-path">${a.path}</div>
+        <div class="health-time">${code} ${time?' / '+time:''}</div>
+      </div>`;
+    }
+    document.getElementById('healthGrid').innerHTML=h;
+  }catch(e){document.getElementById('healthGrid').innerHTML='<div class="loading" style="color:var(--red)">取得エラー</div>'}
+}
+
+// ===== Dockerコンテナ管理 =====
+async function loadContainers(){
+  try{
+    const r=await fetch(B+'/api/containers');const d=await r.json();
+    if(!d.length){document.getElementById('containerList').innerHTML='<div class="fb-empty">コンテナなし</div>';return}
+    let h='';
+    for(const c of d){
+      const dot=c.isRunning?'running':'stopped';
+      h+=`<div class="ct-row">
+        <span class="ct-dot ${dot}"></span>
+        <span class="ct-name">${c.name}</span>
+        <span class="ct-status">${c.status}</span>
+        <span class="ct-image">${c.image}</span>
+        <div class="ct-actions">
+          <button class="btn btn-ghost btn-sm" onclick="viewLogs('${c.name}')">ログ</button>
+          ${c.isRunning
+            ?`<button class="btn btn-sm" style="background:var(--yellow);color:#000" onclick="containerAction('${c.name}','restart')">再起動</button>
+              <button class="btn btn-danger btn-sm" onclick="containerAction('${c.name}','stop')">停止</button>`
+            :`<button class="btn btn-download btn-sm" onclick="containerAction('${c.name}','start')">起動</button>`
+          }
+        </div>
+      </div>`;
+    }
+    document.getElementById('containerList').innerHTML=h;
+  }catch(e){document.getElementById('containerList').innerHTML='<div class="loading" style="color:var(--red)">取得エラー</div>'}
+}
+
+async function containerAction(name,action){
+  if(!confirm(`${name} を${action==='restart'?'再起動':action==='stop'?'停止':'起動'}しますか？`))return;
+  try{
+    const r=await fetch(B+`/api/containers/${name}/${action}`,{method:'POST'});
+    const d=await r.json();
+    if(!r.ok){showToast(d.error,'error');return}
+    showToast(d.message,'success');
+    setTimeout(()=>{loadContainers();loadHealth()},2000);
+  }catch(e){showToast('通信エラー','error')}
+}
+
+async function viewLogs(name){
+  try{
+    const r=await fetch(B+`/api/containers/${name}/logs?lines=80`);
+    const d=await r.json();
+    document.getElementById('logTitle').textContent=name+' のログ（直近80行）';
+    document.getElementById('logContent').textContent=d.logs;
+    document.getElementById('containerLogs').style.display='block';
+    document.getElementById('containerLogs').scrollIntoView({behavior:'smooth'});
+  }catch(e){showToast('ログ取得エラー','error')}
+}
+
+// ===== ワンクリックデプロイ =====
+async function deployApp(name){
+  if(!confirm(`${name} をデプロイしますか？\nコンテナの再ビルド＆再起動を行います。`))return;
+  showToast(`${name} のデプロイを開始...`,'success');
+  try{
+    const r=await fetch(B+`/api/deploy/${name}`,{method:'POST'});
+    const d=await r.json();
+    if(!r.ok){showToast(d.error,'error');return}
+    showToast(d.message,'success');
+    setTimeout(()=>{loadContainers();loadHealth()},3000);
+  }catch(e){showToast('デプロイエラー: '+e.message,'error')}
+}
+
 // ===== ファイルブラウザ =====
 let fbCurrentPath='';
 async function browseDir(dir){
@@ -490,7 +695,9 @@ async function viewFile(fp,perms,owner,size){
 function formatSize(b){if(!b)return '0B';if(b<1024)return b+'B';if(b<1048576)return (b/1024).toFixed(1)+'KB';return (b/1048576).toFixed(1)+'MB'}
 
 // 初期化
-checkSmtp();loadUsers();
+checkSmtp();loadUsers();loadSystem();loadHealth();loadContainers();
+// 30秒ごとに自動更新
+setInterval(()=>{loadSystem();loadHealth()},30000);
 </script>
 </body>
 </html>
