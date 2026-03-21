@@ -101,10 +101,8 @@ function getNextVpnIp() {
 
 // WireGuardクライアント設定を生成してサーバーに登録
 function createWgPeer(username, vpnIp) {
-  // クライアント鍵ペア生成
+  // クライアント鍵ペア生成（ホスト上で実行）
   const privKey = hostExec('wg genkey');
-  const pubKey = execSync(`echo "${privKey}" | wg pubkey`, { encoding: 'utf-8' }).trim();
-  // ↑ wg pubkey はホスト上で実行する必要がある
   const pubKeyHost = hostExec(`echo '${privKey}' | wg pubkey`);
   const serverPubKey = hostExec('cat /etc/wireguard/server_public.key');
 
@@ -132,7 +130,7 @@ Endpoint = ${SERVER_IP}:${VPN_SERVER_PORT}
 AllowedIPs = 10.0.0.1/32
 PersistentKeepalive = 25`;
 
-  return { clientConf, pubKey: pubKeyHost, privKey };
+  return { clientConf, pubKey: pubKeyHost };
 }
 
 // WireGuardからPeerを削除
