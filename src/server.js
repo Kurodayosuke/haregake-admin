@@ -772,6 +772,105 @@ app.post('/api/users/bulk-send-email', (req, res) => {
   }
 });
 
+// ===== API: ファイルブラウザ =====
+const ALLOWED_ROOTS = ['/var/www/app', '/home'];
+
+function isPathAllowed(p) {
+  const resolved = path.resolve(p);
+  return ALLOWED_ROOTS.some(root => resolved.startsWith(root));
+}
+
+app.get('/api/files', (req, res) => {
+  try {
+    const dir = req.query.path || '/var/www/app';
+    if (!isPathAllowed(dir)) {
+      return res.status(403).json({ error: 'このパスへのアクセスは許可されていません' });
+    }
+
+    const entries = [];
+    let listing;
+    try {
+      listing = hostExec(`ls -la --time-style=long-iso ${dir} 2>/dev/null`);
+    } catch (e) {
+      return res.status(404).json({ error: 'ディレクトリが見つかりません' });
+    }
+
+    for (const line of listing.split('\n')) {
+      if (line.startsWith('total') || !line.trim()) continue;
+      // Parse ls -la output
+      const parts = line.split(/\s+/);
+      if (parts.length < 8) continue;
+      const perms = parts[0];
+      const owner = parts[2];
+      const group = parts[3];
+      const size = parseInt(parts[4]);
+      const date = parts[5];
+      const time = parts[6];
+      const name = parts.slice(7).join(' ');
+
+      if (name === '.' || name === '..') continue;
+
+      const isDir = perms.startsWith('d');
+      const isLink = perms.startsWith('l');
+      const fullPath = path.join(dir, name.split(' -> ')[0]);
+
+      entries.push({
+        name: name.split(' -> ')[0],
+        fullPath,
+        isDir,
+        isLink,
+        perms,
+        owner,
+        group,
+        size,
+        modified: `${date} ${time}`,
+        linkTarget: isLink ? (name.split(' -> ')[1] || '') : null,
+      });
+    }
+
+    res.json({ path: dir, entries, parent: path.dirname(dir) });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/files/read', (req, res) => {
+  try {
+    const filePath = req.query.path;
+    if (!filePath || !isPathAllowed(filePath)) {
+      return res.status(403).json({ error: 'このパスへのアクセスは許可されていません' });
+    }
+
+    // ファイルサイズチェック（1MB以上は拒否）
+    let sizeStr;
+    try {
+      sizeStr = hostExec(`stat -c%s '${filePath}' 2>/dev/null`);
+    } catch (e) {
+      return res.status(404).json({ error: 'ファイルが見つかりません' });
+    }
+    const size = parseInt(sizeStr);
+    if (size > 1048576) {
+      return res.json({ content: null, error: 'ファイルが大きすぎます（1MB超）', size });
+    }
+
+    // バイナリチェック
+    let isBinary = false;
+    try {
+      const fileType = hostExec(`file --mime-type -b '${filePath}'`);
+      isBinary = !fileType.startsWith('text/') && !fileType.includes('json') && !fileType.includes('xml') && !fileType.includes('javascript');
+    } catch (e) {}
+
+    if (isBinary) {
+      return res.json({ content: null, error: 'バイナリファイルのため表示できません', size });
+    }
+
+    const content = hostExec(`cat '${filePath}'`);
+    res.json({ content, size, path: filePath });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ===== フロントエンド =====
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
