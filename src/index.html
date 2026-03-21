@@ -5,216 +5,108 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>haregake-lab 管理パネル</title>
 <style>
-  :root {
-    --bg: #0f172a; --surface: #1e293b; --border: #334155;
-    --text: #e2e8f0; --text2: #94a3b8; --accent: #38bdf8;
-    --green: #4ade80; --red: #f87171; --yellow: #fbbf24; --purple: #a78bfa;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-
-  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 20px 32px; display: flex; justify-content: space-between; align-items: center; }
-  .header h1 { font-size: 20px; font-weight: 600; }
-  .header h1 span { color: var(--accent); }
-  .header .subtitle { color: var(--text2); font-size: 13px; margin-top: 2px; }
-  .header-actions { display: flex; gap: 8px; }
-
-  .container { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
-
-  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
-  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
-  .stat-card .label { color: var(--text2); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .stat-card .value { font-size: 28px; font-weight: 700; margin-top: 4px; }
-  .stat-card .value.blue { color: var(--accent); }
-  .stat-card .value.green { color: var(--green); }
-  .stat-card .value.yellow { color: var(--yellow); }
-
-  .section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 24px; overflow: hidden; }
-  .section-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
-  .section-header h2 { font-size: 16px; font-weight: 600; }
-  .section-body { padding: 24px; }
-
-  .btn { padding: 8px 20px; border-radius: 8px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; }
-  .btn-primary { background: var(--accent); color: #0f172a; }
-  .btn-primary:hover { background: #7dd3fc; }
-  .btn-secondary { background: var(--purple); color: #0f172a; }
-  .btn-secondary:hover { background: #c4b5fd; }
-  .btn-danger { background: transparent; border: 1px solid var(--red); color: var(--red); }
-  .btn-danger:hover { background: var(--red); color: white; }
-  .btn-sm { padding: 5px 12px; font-size: 12px; }
-  .btn-download { background: transparent; border: 1px solid var(--green); color: var(--green); }
-  .btn-download:hover { background: var(--green); color: #0f172a; }
-  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text2); }
-  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
-
-  table { width: 100%; border-collapse: collapse; }
-  th { text-align: left; padding: 12px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text2); background: rgba(0,0,0,0.2); white-space: nowrap; }
-  td { padding: 14px 16px; border-top: 1px solid var(--border); font-size: 14px; vertical-align: middle; }
-  tr:hover td { background: rgba(56, 189, 248, 0.03); }
-
-  .badge { display: inline-block; padding: 3px 10px; border-radius: 9999px; font-size: 11px; font-weight: 600; position: relative; }
-  .badge-green { background: rgba(74,222,128,0.15); color: var(--green); }
-  .badge-red { background: rgba(248,113,113,0.15); color: var(--red); }
-  .badge-blue { background: rgba(56,189,248,0.15); color: var(--accent); }
-  .badge-purple { background: rgba(167,139,250,0.15); color: var(--purple); }
-  .badge-yellow { background: rgba(251,191,36,0.15); color: var(--yellow); }
-  .badge-gray { background: rgba(148,163,184,0.15); color: var(--text2); }
-
-  /* ツールチップ */
-  .tip { position: relative; cursor: help; }
-  .tip .tiptext {
-    visibility: hidden; opacity: 0;
-    position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
-    background: #0f172a; color: var(--text); border: 1px solid var(--border);
-    padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 400;
-    white-space: nowrap; z-index: 50; pointer-events: none;
-    transition: opacity 0.15s;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-  }
-  .tip .tiptext::after {
-    content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
-    border: 5px solid transparent; border-top-color: var(--border);
-  }
-  .tip:hover .tiptext { visibility: visible; opacity: 1; }
-
-  .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 100; justify-content: center; align-items: center; }
-  .modal-overlay.active { display: flex; }
-  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 32px; width: 580px; max-width: 90vw; max-height: 90vh; overflow-y: auto; }
-  .modal h3 { font-size: 18px; margin-bottom: 20px; }
-  .modal input[type="text"] { width: 100%; padding: 12px 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 15px; outline: none; margin-bottom: 8px; }
-  .modal input[type="text"]:focus { border-color: var(--accent); }
-  .modal textarea { width: 100%; padding: 12px 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: monospace; font-size: 14px; outline: none; resize: vertical; }
-  .modal textarea:focus { border-color: var(--accent); }
-  .modal .hint { color: var(--text2); font-size: 12px; margin-bottom: 20px; }
-  .modal .actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; }
-
-  .key-modal textarea { color: var(--green); font-size: 12px; height: 200px; resize: none; }
-  .key-modal .warning { background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.3); border-radius: 8px; padding: 12px; color: var(--yellow); font-size: 13px; margin: 16px 0; }
-
-  .toast { position: fixed; bottom: 24px; right: 24px; padding: 14px 24px; border-radius: 10px; font-size: 14px; font-weight: 500; z-index: 200; transform: translateY(100px); opacity: 0; transition: all 0.3s; max-width: 400px; }
-  .toast.show { transform: translateY(0); opacity: 1; }
-  .toast.success { background: rgba(74,222,128,0.2); border: 1px solid var(--green); color: var(--green); }
-  .toast.error { background: rgba(248,113,113,0.2); border: 1px solid var(--red); color: var(--red); }
-
-  .empty-row td { text-align: center; color: var(--text2); padding: 40px; }
-  .loading { text-align: center; padding: 40px; color: var(--text2); }
-  .perm-list { display: flex; gap: 4px; flex-wrap: wrap; }
-
-  /* ガイド */
-  .guide { padding: 24px; }
-  .guide h3 { font-size: 15px; font-weight: 600; margin: 20px 0 10px 0; color: var(--accent); }
-  .guide h3:first-child { margin-top: 0; }
-  .guide p { color: var(--text2); font-size: 13px; line-height: 1.7; margin-bottom: 8px; }
-  .guide ol, .guide ul { color: var(--text2); font-size: 13px; line-height: 1.8; margin-left: 20px; margin-bottom: 12px; }
-  .guide code { background: var(--bg); padding: 2px 8px; border-radius: 4px; font-size: 12px; color: var(--accent); }
-  .guide .guide-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 12px; }
-  .guide .guide-card { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
-  .guide .guide-card h4 { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text); }
-  .guide .guide-card p { font-size: 12px; margin-bottom: 0; }
-
-  .bulk-results { margin-top: 16px; max-height: 300px; overflow-y: auto; }
-  .bulk-result-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; font-size: 13px; }
-  .bulk-result-item.success { border-color: rgba(74,222,128,0.3); }
-  .bulk-result-item.fail { border-color: rgba(248,113,113,0.3); }
-  .bulk-result-item .name { font-weight: 600; }
-  .bulk-result-item .dl-link { color: var(--green); cursor: pointer; text-decoration: underline; font-size: 12px; }
-  .btn-actions { display: flex; gap: 6px; }
-
-  @media (max-width: 768px) {
-    .header { flex-direction: column; align-items: flex-start; gap: 12px; }
-    td, th { padding: 10px 8px; font-size: 12px; }
-    .tip .tiptext { white-space: normal; min-width: 200px; }
-  }
+  :root { --bg:#0f172a;--surface:#1e293b;--border:#334155;--text:#e2e8f0;--text2:#94a3b8;--accent:#38bdf8;--green:#4ade80;--red:#f87171;--yellow:#fbbf24;--purple:#a78bfa; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+  .header{background:var(--surface);border-bottom:1px solid var(--border);padding:20px 32px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+  .header h1{font-size:20px;font-weight:600}.header h1 span{color:var(--accent)}
+  .header .subtitle{color:var(--text2);font-size:13px;margin-top:2px}
+  .container{max-width:1300px;margin:0 auto;padding:32px 24px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:32px}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px}
+  .stat-card .label{color:var(--text2);font-size:12px;letter-spacing:.5px}.stat-card .value{font-size:28px;font-weight:700;margin-top:4px}
+  .stat-card .value.blue{color:var(--accent)}.stat-card .value.green{color:var(--green)}.stat-card .value.yellow{color:var(--yellow)}
+  .section{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:24px;overflow:hidden}
+  .section-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+  .section-header h2{font-size:16px;font-weight:600}
+  .btn{padding:8px 20px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:.15s;display:inline-flex;align-items:center;gap:6px}
+  .btn-primary{background:var(--accent);color:#0f172a}.btn-primary:hover{background:#7dd3fc}
+  .btn-secondary{background:var(--purple);color:#0f172a}.btn-secondary:hover{background:#c4b5fd}
+  .btn-danger{background:transparent;border:1px solid var(--red);color:var(--red)}.btn-danger:hover{background:var(--red);color:#fff}
+  .btn-sm{padding:5px 12px;font-size:12px}
+  .btn-download{background:transparent;border:1px solid var(--green);color:var(--green)}.btn-download:hover{background:var(--green);color:#0f172a}
+  .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text2)}.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+  .btn-mail{background:transparent;border:1px solid var(--accent);color:var(--accent)}.btn-mail:hover{background:var(--accent);color:#0f172a}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  table{width:100%;border-collapse:collapse}
+  th{text-align:left;padding:12px 14px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);background:rgba(0,0,0,.2);white-space:nowrap}
+  td{padding:12px 14px;border-top:1px solid var(--border);font-size:13px;vertical-align:middle}
+  tr:hover td{background:rgba(56,189,248,.03)}
+  .badge{display:inline-block;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:600}
+  .badge-green{background:rgba(74,222,128,.15);color:var(--green)}.badge-red{background:rgba(248,113,113,.15);color:var(--red)}
+  .badge-blue{background:rgba(56,189,248,.15);color:var(--accent)}.badge-purple{background:rgba(167,139,250,.15);color:var(--purple)}
+  .badge-yellow{background:rgba(251,191,36,.15);color:var(--yellow)}.badge-gray{background:rgba(148,163,184,.15);color:var(--text2)}
+  .tip{position:relative;cursor:help}
+  .tip .tt{visibility:hidden;opacity:0;position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#0f172a;color:var(--text);border:1px solid var(--border);padding:8px 12px;border-radius:8px;font-size:12px;font-weight:400;white-space:nowrap;z-index:50;pointer-events:none;transition:opacity .15s;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+  .tip .tt::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--border)}
+  .tip:hover .tt{visibility:visible;opacity:1}
+  .modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);z-index:100;justify-content:center;align-items:flex-start;padding-top:5vh;overflow-y:auto}
+  .modal-overlay.active{display:flex}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;width:700px;max-width:92vw;max-height:88vh;overflow-y:auto;margin-bottom:5vh}
+  .modal h3{font-size:18px;margin-bottom:20px}
+  .modal input[type="text"],.modal input[type="email"]{width:100%;padding:12px 16px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:15px;outline:none;margin-bottom:8px}
+  .modal input:focus{border-color:var(--accent)}
+  .modal textarea{width:100%;padding:12px 16px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:monospace;font-size:13px;outline:none;resize:vertical}
+  .modal textarea:focus{border-color:var(--accent)}
+  .hint{color:var(--text2);font-size:12px;margin-bottom:16px}
+  .actions{display:flex;gap:12px;justify-content:flex-end;margin-top:20px;flex-wrap:wrap}
+  .key-area textarea{color:var(--green);font-size:12px;height:180px;resize:none}
+  .warning{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:8px;padding:12px;color:var(--yellow);font-size:13px;margin:16px 0}
+  .toast{position:fixed;bottom:24px;right:24px;padding:14px 24px;border-radius:10px;font-size:14px;font-weight:500;z-index:200;transform:translateY(100px);opacity:0;transition:.3s;max-width:400px}
+  .toast.show{transform:translateY(0);opacity:1}
+  .toast.success{background:rgba(74,222,128,.2);border:1px solid var(--green);color:var(--green)}
+  .toast.error{background:rgba(248,113,113,.2);border:1px solid var(--red);color:var(--red)}
+  .empty-row td{text-align:center;color:var(--text2);padding:40px}
+  .loading{text-align:center;padding:40px;color:var(--text2)}
+  .perm-list{display:flex;gap:4px;flex-wrap:wrap}
+  .btn-actions{display:flex;gap:6px;flex-wrap:wrap}
+  .email-preview-box{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;font-family:monospace;font-size:12px;white-space:pre-wrap;word-break:break-word;max-height:50vh;overflow-y:auto;line-height:1.6;color:var(--text2)}
+  .email-meta{display:grid;grid-template-columns:80px 1fr;gap:8px;margin-bottom:16px;font-size:13px}
+  .email-meta .label{color:var(--text2);font-weight:600}.email-meta .val{color:var(--text)}
+  .bulk-item{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;font-size:13px}
+  .bulk-item.ok{border-color:rgba(74,222,128,.3)}.bulk-item.ng{border-color:rgba(248,113,113,.3)}
+  .guide{padding:24px}.guide h3{font-size:15px;font-weight:600;margin:20px 0 10px 0;color:var(--accent)}.guide h3:first-child{margin-top:0}
+  .guide p{color:var(--text2);font-size:13px;line-height:1.7;margin-bottom:8px}
+  .guide ol,.guide ul{color:var(--text2);font-size:13px;line-height:1.8;margin-left:20px;margin-bottom:12px}
+  .guide code{background:var(--bg);padding:2px 8px;border-radius:4px;font-size:12px;color:var(--accent)}
+  .guide .gg{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:12px}
+  .guide .gc{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px}
+  .guide .gc h4{font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text)}.guide .gc p{font-size:12px;margin-bottom:0}
+  .smtp-warn{background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:8px;padding:12px 16px;color:var(--red);font-size:13px;margin-bottom:16px;display:none}
+  @media(max-width:768px){.header{flex-direction:column;align-items:flex-start}td,th{padding:8px 6px;font-size:11px}.tip .tt{white-space:normal;min-width:180px}}
 </style>
 </head>
 <body>
 
 <div class="header">
-  <div>
-    <h1><span>haregake-lab</span> 管理パネル</h1>
-    <div class="subtitle">ユーザー管理・権限設定</div>
-  </div>
-  <div class="header-actions">
-    <button class="btn btn-ghost" onclick="toggleGuide()">使い方ガイド</button>
-  </div>
+  <div><h1><span>haregake-lab</span> 管理パネル</h1><div class="subtitle">ユーザー管理・権限設定・案内メール送信</div></div>
+  <div class="btn-actions"><button class="btn btn-ghost" onclick="toggleGuide()">使い方ガイド</button></div>
 </div>
 
 <div class="container">
-
-  <!-- 使い方ガイド -->
-  <div class="section" id="guideSection" style="display:none;">
-    <div class="section-header">
-      <h2>使い方ガイド</h2>
-    </div>
+  <!-- ガイド -->
+  <div class="section" id="guideSection" style="display:none">
+    <div class="section-header"><h2>使い方ガイド</h2></div>
     <div class="guide">
-      <div class="guide-grid">
-        <div class="guide-card">
-          <h4>1. ユーザーを追加する（1人ずつ）</h4>
-          <p>「+ ユーザー追加」ボタンをクリックし、名前（例: <code>yamada</code>）を入力して「作成」を押します。Linuxユーザー <code>user_yamada</code> が作成され、SSH鍵が自動生成されます。秘密鍵をすぐにダウンロードしてください。</p>
-        </div>
-        <div class="guide-card">
-          <h4>2. ユーザーを追加する（一括）</h4>
-          <p>「一括追加」ボタンをクリックし、名前を1行ずつ入力して「一括作成」を押します。全員分のSSH鍵がまとめて生成されます。個別ダウンロードまたは全件ダウンロードが可能です。</p>
-        </div>
-        <div class="guide-card">
-          <h4>3. SSH鍵をメンバーに渡す</h4>
-          <p>ダウンロードした秘密鍵ファイルをメンバーに送ります。メンバーは <code>~/.ssh/</code> に保存し、<code>ssh user_yamada@160.16.207.196</code> で接続できます。</p>
-        </div>
-        <div class="guide-card">
-          <h4>4. 権限の仕組み</h4>
-          <p><strong>sandbox</strong> = 全メンバーが読み書き可能な共有実験エリア。<strong>app1/app2</strong> = 担当者のみ書き込み可能。<strong>sudo/docker</strong> = 一般ユーザーには付与されません。</p>
-        </div>
+      <div class="gg">
+        <div class="gc"><h4>1. ユーザーを追加する</h4><p>「ユーザー追加」をクリックし、メールアドレスを入力して「作成」。<code>user_メールの@の前</code> 形式でLinuxユーザーが自動作成され、SSH鍵も自動生成されます。</p></div>
+        <div class="gc"><h4>2. 一括で追加する</h4><p>「一括追加」をクリックし、メールアドレスを1行ずつ入力。全員分をまとめて作成できます。</p></div>
+        <div class="gc"><h4>3. 案内メールを送る</h4><p>ユーザー一覧の「メール送信」をクリックすると、メール内容がプレビューされます。確認後「送信」で案内メールが届きます。メールにはSSH秘密鍵の添付と、Gemini用の接続ガイドプロンプトが含まれます。</p></div>
+        <div class="gc"><h4>4. 権限の仕組み</h4><p><strong>sandbox</strong> = 全員が読み書き可能。<strong>app1/app2</strong> = 担当者のみ。<strong>sudo/docker</strong> = 一般ユーザーには付与されません。</p></div>
       </div>
-
-      <h3>メンバー向け：SSH接続手順</h3>
-      <ol>
-        <li>管理者から秘密鍵ファイル（例: <code>user_yamada_id_ed25519</code>）を受け取る</li>
-        <li><code>~/.ssh/</code> に保存してパーミッションを設定：<br><code>chmod 600 ~/.ssh/user_yamada_id_ed25519</code></li>
-        <li>サーバーに接続：<br><code>ssh -i ~/.ssh/user_yamada_id_ed25519 user_yamada@160.16.207.196</code></li>
-        <li>毎回の入力を省略するには <code>~/.ssh/config</code> に以下を追加：
-          <br><code>Host haregake</code>
-          <br><code>&nbsp;&nbsp;HostName 160.16.207.196</code>
-          <br><code>&nbsp;&nbsp;User user_yamada</code>
-          <br><code>&nbsp;&nbsp;IdentityFile ~/.ssh/user_yamada_id_ed25519</code>
-          <br>以降は <code>ssh haregake</code> だけで接続可能
-        </li>
-      </ol>
-
-      <h3>ディレクトリ構成</h3>
-      <p><code>/var/www/app/</code></p>
-      <ul>
-        <li><code>sandbox/</code> - 共有実験エリア（sandbox権限を持つ全員が読み書き可能）</li>
-        <li><code>app1/</code> - 本番用アプリ1（担当者のみ書き込み可）</li>
-        <li><code>app2/</code> - 本番用アプリ2（担当者のみ書き込み可）</li>
-      </ul>
-
-      <h3>アプリのデプロイ方法</h3>
-      <p>管理者が以下を実行：<code>sudo deploy-app sandbox</code>（または <code>app1</code>, <code>app2</code>）</p>
-      <p>Dockerコンテナが再ビルド・再起動されます。</p>
-
-      <h3>アクセスURL</h3>
-      <ul>
-        <li><code>https://app.haregake-lab.com/sandbox/</code></li>
-        <li><code>https://app.haregake-lab.com/app1/</code></li>
-        <li><code>https://app.haregake-lab.com/app2/</code></li>
-      </ul>
+      <h3>メール送信について</h3>
+      <p>案内メールにはGemini用プロンプトが含まれており、受信者はそのプロンプトをGeminiに貼り付けるだけで、完全初心者でもSSH接続の設定を一歩ずつ進められます。</p>
+      <p>SMTP設定が必要です。<code>docker-compose.yml</code> の <code>SMTP_USER</code> と <code>SMTP_PASS</code> を設定してください（Gmailの場合はアプリパスワード）。</p>
     </div>
   </div>
 
-  <!-- ステータスカード -->
+  <div id="smtpWarn" class="smtp-warn">⚠ SMTP（メール送信）が設定されていません。メールのプレビューは可能ですが、送信にはdocker-compose.ymlでSMTP設定が必要です。</div>
+
+  <!-- 統計 -->
   <div class="stats">
-    <div class="stat-card">
-      <div class="label">ユーザー数</div>
-      <div class="value blue" id="totalUsers">-</div>
-    </div>
-    <div class="stat-card">
-      <div class="label">SSH鍵 登録済み</div>
-      <div class="value green" id="keyCount">-</div>
-    </div>
-    <div class="stat-card">
-      <div class="label">sandbox メンバー</div>
-      <div class="value yellow" id="sandboxCount">-</div>
-    </div>
+    <div class="stat-card"><div class="label">ユーザー数</div><div class="value blue" id="totalUsers">-</div></div>
+    <div class="stat-card"><div class="label">SSH鍵 登録済み</div><div class="value green" id="keyCount">-</div></div>
+    <div class="stat-card"><div class="label">メール送信済み</div><div class="value yellow" id="emailCount">-</div></div>
   </div>
 
   <!-- ユーザー一覧 -->
@@ -230,14 +122,17 @@
   </div>
 </div>
 
-<!-- 単体作成モーダル -->
+<!-- 作成モーダル -->
 <div class="modal-overlay" id="createModal">
   <div class="modal">
     <h3>ユーザーを追加</h3>
-    <input type="text" id="newUserName" placeholder="名前を入力（例: yamada）" autocomplete="off" />
-    <div class="hint">user_ は自動で付与されます。英数字とアンダースコアのみ使用可能です。</div>
+    <input type="email" id="newEmail" placeholder="メールアドレスを入力（例: yamada@example.com）" autocomplete="off" />
+    <div class="hint">メールアドレスの @ 前がユーザー名になります（例: yamada@example.com → user_yamada）</div>
+    <label style="display:flex;align-items:center;gap:8px;color:var(--text2);font-size:13px;margin-bottom:8px;cursor:pointer">
+      <input type="checkbox" id="sendEmailOnCreate" checked /> 作成後に案内メールのプレビューを表示する
+    </label>
     <div class="actions">
-      <button class="btn btn-ghost" onclick="closeCreateModal()">キャンセル</button>
+      <button class="btn btn-ghost" onclick="closeModal('createModal')">キャンセル</button>
       <button class="btn btn-primary" onclick="createUser()" id="createBtn">作成</button>
     </div>
   </div>
@@ -247,40 +142,58 @@
 <div class="modal-overlay" id="bulkModal">
   <div class="modal">
     <h3>ユーザーを一括追加</h3>
-    <p style="color:var(--text2);font-size:13px;margin-bottom:12px;">1行に1名ずつ名前を入力してください。<code>user_</code> は自動で付与されます。</p>
-    <textarea id="bulkNames" rows="8" placeholder="tanaka&#10;sato&#10;suzuki&#10;yamada&#10;watanabe"></textarea>
-    <div class="hint">一度に最大50名まで作成できます。空行は無視されます。</div>
+    <p style="color:var(--text2);font-size:13px;margin-bottom:12px">メールアドレスを1行に1つずつ入力してください。</p>
+    <textarea id="bulkEmails" rows="8" placeholder="tanaka@example.com&#10;sato@example.com&#10;suzuki@example.com"></textarea>
+    <div class="hint">一度に最大50名まで。空行は無視されます。</div>
     <div id="bulkResults"></div>
     <div class="actions">
-      <button class="btn btn-ghost" onclick="closeBulkModal()">閉じる</button>
+      <button class="btn btn-ghost" onclick="closeModal('bulkModal')">閉じる</button>
       <button class="btn btn-secondary" id="bulkBtn" onclick="createBulkUsers()">一括作成</button>
     </div>
   </div>
 </div>
 
-<!-- 鍵表示モーダル（単体） -->
-<div class="modal-overlay key-modal" id="keyModal">
-  <div class="modal">
+<!-- 秘密鍵モーダル -->
+<div class="modal-overlay" id="keyModal">
+  <div class="modal key-area">
     <h3>SSH秘密鍵</h3>
     <div class="warning">この鍵は今回のみ表示されます。必ずダウンロードまたはコピーしてください。</div>
     <textarea id="keyContent" readonly></textarea>
-    <div class="actions" style="margin-top:16px">
+    <div class="actions">
       <button class="btn btn-download" onclick="downloadKey()">ダウンロード</button>
       <button class="btn btn-ghost" onclick="copyKey()">コピー</button>
-      <button class="btn btn-primary" onclick="closeKeyModal()">閉じる</button>
+      <button class="btn btn-primary" onclick="closeModal('keyModal')">閉じる</button>
     </div>
   </div>
 </div>
 
-<!-- 鍵表示モーダル（一括） -->
-<div class="modal-overlay key-modal" id="bulkKeyModal">
+<!-- 一括鍵モーダル -->
+<div class="modal-overlay" id="bulkKeyModal">
   <div class="modal">
     <h3>一括作成完了 - SSH鍵</h3>
     <div class="warning">これらの鍵は今回のみ表示されます。すべてダウンロードしてください。</div>
-    <div id="bulkKeyList" class="bulk-results"></div>
-    <div class="actions" style="margin-top:16px">
+    <div id="bulkKeyList" style="max-height:300px;overflow-y:auto"></div>
+    <div class="actions">
       <button class="btn btn-download" onclick="downloadAllKeys()">全件ダウンロード</button>
-      <button class="btn btn-primary" onclick="closeBulkKeyModal()">閉じる</button>
+      <button class="btn btn-mail" id="bulkSendEmailBtn" onclick="bulkSendEmails()">全員にメール送信</button>
+      <button class="btn btn-primary" onclick="closeModal('bulkKeyModal')">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- メールプレビューモーダル -->
+<div class="modal-overlay" id="emailModal">
+  <div class="modal">
+    <h3>案内メール プレビュー</h3>
+    <div class="email-meta">
+      <span class="label">宛先</span><span class="val" id="emailTo">-</span>
+      <span class="label">件名</span><span class="val" id="emailSubject">-</span>
+      <span class="label">添付</span><span class="val" id="emailAttach">-</span>
+    </div>
+    <div class="email-preview-box" id="emailBody"></div>
+    <div class="actions">
+      <button class="btn btn-ghost" onclick="closeModal('emailModal')">閉じる</button>
+      <button class="btn btn-mail" id="emailSendBtn" onclick="sendEmail()">この内容で送信する</button>
     </div>
   </div>
 </div>
@@ -288,271 +201,196 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const BASE = location.pathname.replace(/\/$/, '');
-let currentKeyUser = '';
-let currentKeyContent = '';
-let bulkKeyData = [];
+const B = location.pathname.replace(/\/$/,'');
+let smtpOk = false;
+let curKeyUser='', curKeyContent='';
+let bulkKeyData=[];
+let emailTargetUser='';
 
-// ===== ユーザー読み込み =====
-async function loadUsers() {
-  try {
-    const res = await fetch(BASE + '/api/users');
-    if (!res.ok) throw new Error('APIエラー: ' + res.status);
-    const users = await res.json();
-    renderUsers(users);
-    document.getElementById('totalUsers').textContent = users.length;
-    document.getElementById('keyCount').textContent = users.filter(u => u.hasKey).length;
-    document.getElementById('sandboxCount').textContent = users.filter(u => u.inSandbox).length;
-  } catch(e) {
-    console.error('loadUsers error:', e);
-    document.getElementById('userTable').innerHTML =
-      '<div class="loading" style="color:var(--red)">読み込みエラー: ' + e.message + '</div>';
-  }
+// SMTP状態
+async function checkSmtp(){
+  try{const r=await fetch(B+'/api/smtp-status');const d=await r.json();smtpOk=d.configured;
+    if(!smtpOk)document.getElementById('smtpWarn').style.display='block';
+    else document.getElementById('smtpWarn').style.display='none';
+  }catch(e){}
 }
 
-function renderUsers(users) {
-  if (users.length === 0) {
-    document.getElementById('userTable').innerHTML =
-      '<table><tr class="empty-row"><td colspan="7">ユーザーがまだ登録されていません。「+ ユーザー追加」で作成してください。</td></tr></table>';
-    return;
-  }
+// ユーザー読み込み
+async function loadUsers(){
+  try{
+    const r=await fetch(B+'/api/users');if(!r.ok)throw new Error('API '+r.status);
+    const users=await r.json();renderUsers(users);
+    document.getElementById('totalUsers').textContent=users.length;
+    document.getElementById('keyCount').textContent=users.filter(u=>u.hasKey).length;
+    document.getElementById('emailCount').textContent=users.filter(u=>u.emailSentAt).length;
+  }catch(e){document.getElementById('userTable').innerHTML='<div class="loading" style="color:var(--red)">読み込みエラー: '+e.message+'</div>'}
+}
 
-  let html = '<table><thead><tr>' +
-    '<th>ユーザー名</th><th>SSH鍵</th><th>権限</th>' +
-    '<th>担当ディレクトリ</th><th>認証方式</th><th>セキュリティ</th><th>操作</th>' +
-    '</tr></thead><tbody>';
-
-  for (const u of users) {
+function renderUsers(users){
+  if(!users.length){document.getElementById('userTable').innerHTML='<table><tr class="empty-row"><td colspan="8">ユーザーがまだ登録されていません</td></tr></table>';return}
+  let h='<table><thead><tr><th>ユーザー名</th><th>メール</th><th>SSH鍵</th><th>権限</th><th>認証</th><th>セキュリティ</th><th>メール送信</th><th>操作</th></tr></thead><tbody>';
+  for(const u of users){
+    // メール
+    const em=u.email?'<span style="font-size:12px">'+u.email+'</span>':'<span style="color:var(--text2);font-size:12px">未設定</span>';
     // SSH鍵
-    const keyBadge = u.hasKey
-      ? '<span class="tip"><span class="badge badge-green">登録済</span><span class="tiptext">SSH公開鍵がサーバーに登録されており、鍵認証でSSH接続が可能です</span></span>'
-      : '<span class="tip"><span class="badge badge-red">未登録</span><span class="tiptext">SSH公開鍵が未登録のため、このユーザーではまだSSH接続できません</span></span>';
-
-    // 権限バッジ
-    let perms = '<div class="perm-list">';
-    if (u.inSandbox) {
-      perms += '<span class="tip"><span class="badge badge-blue">sandbox</span><span class="tiptext">sandbox ディレクトリ（/var/www/app/sandbox/）への読み書きが可能です</span></span>';
+    const kb=u.hasKey
+      ?'<span class="tip"><span class="badge badge-green">登録済</span><span class="tt">SSH公開鍵が登録済み。鍵認証でSSH接続可能</span></span>'
+      :'<span class="tip"><span class="badge badge-red">未登録</span><span class="tt">SSH公開鍵が未登録。SSH接続不可</span></span>';
+    // 権限
+    let pm='<div class="perm-list">';
+    if(u.inSandbox)pm+='<span class="tip"><span class="badge badge-blue">sandbox</span><span class="tt">sandbox（/var/www/app/sandbox/）への読み書きが可能</span></span>';
+    for(const d of u.ownedDirs)pm+='<span class="tip"><span class="badge badge-purple">'+d+' 担当</span><span class="tt">/var/www/app/'+d+'/ の所有者。書き込み権限あり</span></span>';
+    if(!u.inSandbox&&!u.ownedDirs.length)pm+='<span class="tip"><span class="badge badge-gray">なし</span><span class="tt">特別な権限は割り当てられていません</span></span>';
+    pm+='</div>';
+    // 認証
+    const ab=u.locked
+      ?'<span class="tip"><span class="badge badge-green">鍵認証のみ</span><span class="tt">パスワードロック済み。SSH鍵でのみログイン可能（推奨設定）</span></span>'
+      :'<span class="tip"><span class="badge badge-yellow">PW有効</span><span class="tt">パスワードログインが可能。鍵認証のみにすることを推奨</span></span>';
+    // セキュリティ
+    let sc='<div class="perm-list">';
+    sc+=u.hasSudo?'<span class="tip"><span class="badge badge-red">sudo有</span><span class="tt">root権限あり。一般ユーザーには非推奨</span></span>':'<span class="tip"><span class="badge badge-green">sudo無</span><span class="tt">root権限なし（安全）</span></span>';
+    sc+=u.hasDocker?'<span class="tip"><span class="badge badge-red">docker有</span><span class="tt">Docker操作可能。実質root相当で非推奨</span></span>':'<span class="tip"><span class="badge badge-green">docker無</span><span class="tt">Docker操作不可（安全）</span></span>';
+    sc+='</div>';
+    // メール送信状態
+    let ms;
+    if(u.emailSentAt){
+      const d=new Date(u.emailSentAt);const ds=d.getMonth()+1+'/'+d.getDate()+' '+d.getHours()+':'+String(d.getMinutes()).padStart(2,'0');
+      ms='<span class="tip"><span class="badge badge-green">送信済</span><span class="tt">'+ds+' に送信済み</span></span><br><button class="btn btn-mail btn-sm" style="margin-top:4px" onclick="previewEmail(\''+u.username+'\')">再送</button>';
+    }else if(u.email){
+      ms='<button class="btn btn-mail btn-sm" onclick="previewEmail(\''+u.username+'\')">メール送信</button>';
+    }else{
+      ms='<span style="color:var(--text2);font-size:11px">メール未設定</span>';
     }
-    if (u.ownedDirs.length > 0) {
-      for (const d of u.ownedDirs) {
-        perms += '<span class="tip"><span class="badge badge-purple">' + d + ' 担当</span><span class="tiptext">/var/www/app/' + d + '/ の所有者です。このディレクトリへの書き込み権限があります</span></span>';
-      }
-    }
-    if (!u.inSandbox && u.ownedDirs.length === 0) {
-      perms += '<span class="tip"><span class="badge badge-gray">なし</span><span class="tiptext">現在このユーザーに割り当てられた特別な権限はありません</span></span>';
-    }
-    perms += '</div>';
+    // 操作
+    let ops='<div class="btn-actions">';
+    if(u.hasKey)ops+='<button class="btn btn-download btn-sm" onclick="dlKey(\''+u.username+'\')">鍵</button>';
+    ops+='<button class="btn btn-danger btn-sm" onclick="deleteUser(\''+u.username+'\')">削除</button></div>';
 
-    // 担当ディレクトリ
-    const dirs = u.ownedDirs.length > 0
-      ? '<div class="perm-list">' + u.ownedDirs.map(d => '<span class="badge badge-purple">' + d + '</span>').join('') + '</div>'
-      : '<span style="color:var(--text2)">-</span>';
-
-    // 認証方式
-    const authBadge = u.locked
-      ? '<span class="tip"><span class="badge badge-green">鍵認証のみ</span><span class="tiptext">パスワードはロック済みです。SSH鍵でのみログインできます（セキュリティ推奨設定）</span></span>'
-      : '<span class="tip"><span class="badge badge-yellow">パスワード有効</span><span class="tiptext">パスワードによるログインが可能な状態です。セキュリティ上、鍵認証のみにすることを推奨します</span></span>';
-
-    // セキュリティ（sudo / docker）
-    let secBadges = '<div class="perm-list">';
-    secBadges += u.hasSudo
-      ? '<span class="tip"><span class="badge badge-red">sudo 有</span><span class="tiptext">root権限でコマンドを実行できます。一般ユーザーには非推奨です</span></span>'
-      : '<span class="tip"><span class="badge badge-green">sudo 無</span><span class="tiptext">root権限はありません。サーバーのシステム設定を変更することはできません（安全）</span></span>';
-    secBadges += u.hasDocker
-      ? '<span class="tip"><span class="badge badge-red">docker 有</span><span class="tiptext">Dockerコマンドを実行できます。実質root相当の権限を持つため、一般ユーザーには非推奨です</span></span>'
-      : '<span class="tip"><span class="badge badge-green">docker 無</span><span class="tiptext">Dockerコマンドは使用できません。コンテナ操作は管理者が行います（安全）</span></span>';
-    secBadges += '</div>';
-
-    html += '<tr>';
-    html += '<td><strong>' + u.username + '</strong><br><span style="color:var(--text2);font-size:12px">UID: ' + u.uid + '</span></td>';
-    html += '<td>' + keyBadge + '</td>';
-    html += '<td>' + perms + '</td>';
-    html += '<td>' + dirs + '</td>';
-    html += '<td>' + authBadge + '</td>';
-    html += '<td>' + secBadges + '</td>';
-    html += '<td><div class="btn-actions">';
-    if (u.hasKey) html += '<button class="btn btn-download btn-sm" onclick="downloadUserKey(\'' + u.username + '\')">鍵DL</button>';
-    html += '<button class="btn btn-danger btn-sm" onclick="deleteUser(\'' + u.username + '\')">削除</button>';
-    html += '</div></td></tr>';
+    h+='<tr><td><strong>'+u.username+'</strong><br><span style="color:var(--text2);font-size:11px">UID:'+u.uid+'</span></td>';
+    h+='<td>'+em+'</td><td>'+kb+'</td><td>'+pm+'</td><td>'+ab+'</td><td>'+sc+'</td><td>'+ms+'</td><td>'+ops+'</td></tr>';
   }
-  html += '</tbody></table>';
-  document.getElementById('userTable').innerHTML = html;
+  h+='</tbody></table>';document.getElementById('userTable').innerHTML=h;
 }
 
-// ===== ガイド開閉 =====
-function toggleGuide() {
-  const s = document.getElementById('guideSection');
-  s.style.display = s.style.display === 'none' ? 'block' : 'none';
+// ガイド
+function toggleGuide(){const s=document.getElementById('guideSection');s.style.display=s.style.display==='none'?'block':'none'}
+
+// モーダル共通
+function closeModal(id){document.getElementById(id).classList.remove('active')}
+
+// 単体作成
+function openCreateModal(){document.getElementById('createModal').classList.add('active');document.getElementById('newEmail').value='';document.getElementById('newEmail').focus()}
+async function createUser(){
+  const email=document.getElementById('newEmail').value.trim();
+  if(!email)return;
+  const btn=document.getElementById('createBtn');btn.disabled=true;btn.textContent='作成中...';
+  try{
+    const r=await fetch(B+'/api/users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+    const d=await r.json();if(!r.ok){showToast(d.error,'error');return}
+    closeModal('createModal');showToast(d.message,'success');
+    if(d.privateKey){curKeyUser=d.username;curKeyContent=d.privateKey;document.getElementById('keyContent').value=d.privateKey;document.getElementById('keyModal').classList.add('active')}
+    loadUsers();
+    // 案内メールプレビューを表示
+    if(document.getElementById('sendEmailOnCreate').checked&&d.email){
+      setTimeout(()=>previewEmail(d.username),800);
+    }
+  }catch(e){showToast('通信エラー','error')}
+  finally{btn.disabled=false;btn.textContent='作成'}
 }
 
-// ===== 単体作成 =====
-function openCreateModal() {
-  document.getElementById('createModal').classList.add('active');
-  document.getElementById('newUserName').value = '';
-  document.getElementById('newUserName').focus();
-}
-function closeCreateModal() { document.getElementById('createModal').classList.remove('active'); }
-
-async function createUser() {
-  const name = document.getElementById('newUserName').value.trim();
-  if (!name) return;
-  const btn = document.getElementById('createBtn');
-  btn.disabled = true; btn.textContent = '作成中...';
-  try {
-    const res = await fetch(BASE + '/api/users', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name })
-    });
-    const data = await res.json();
-    if (!res.ok) { showToast(data.error, 'error'); return; }
-    closeCreateModal();
-    showToast(data.message, 'success');
-    if (data.privateKey) {
-      currentKeyUser = data.username;
-      currentKeyContent = data.privateKey;
-      document.getElementById('keyContent').value = data.privateKey;
-      document.getElementById('keyModal').classList.add('active');
+// 一括作成
+function openBulkModal(){document.getElementById('bulkModal').classList.add('active');document.getElementById('bulkEmails').value='';document.getElementById('bulkResults').innerHTML='';document.getElementById('bulkEmails').focus()}
+async function createBulkUsers(){
+  const raw=document.getElementById('bulkEmails').value.trim();if(!raw)return;
+  const lines=raw.split('\n').map(s=>s.trim()).filter(s=>s);if(!lines.length)return;
+  const entries=lines.map(l=>l.includes('@')?{email:l}:{name:l});
+  const btn=document.getElementById('bulkBtn');btn.disabled=true;btn.textContent='作成中...';
+  document.getElementById('bulkResults').innerHTML='<div class="loading">'+entries.length+'名 処理中...</div>';
+  try{
+    const r=await fetch(B+'/api/users/bulk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({entries})});
+    const d=await r.json();if(!r.ok){showToast(d.error,'error');return}
+    showToast(d.message,'success');
+    let rh='';for(const x of d.results){
+      if(x.success)rh+='<div class="bulk-item ok"><span>'+x.username+(x.email?' ('+x.email+')':'')+'</span><span class="badge badge-green">作成済</span></div>';
+      else rh+='<div class="bulk-item ng"><span>'+(x.username||x.input)+'</span><span class="badge badge-red">'+x.error+'</span></div>';
+    }
+    document.getElementById('bulkResults').innerHTML=rh;
+    bulkKeyData=d.results.filter(x=>x.success&&x.privateKey);
+    if(bulkKeyData.length){
+      let kh='';for(const x of bulkKeyData)kh+='<div class="bulk-item ok"><span>'+x.username+(x.email?' ('+x.email+')':'')+'</span><span class="badge badge-green" style="cursor:pointer" onclick="dlSingleBulk(\''+x.username+'\')">鍵DL</span></div>';
+      document.getElementById('bulkKeyList').innerHTML=kh;
+      // メール一括送信ボタンの表示制御
+      const hasEmails=bulkKeyData.some(x=>x.email);
+      document.getElementById('bulkSendEmailBtn').style.display=hasEmails?'':'none';
+      setTimeout(()=>{closeModal('bulkModal');document.getElementById('bulkKeyModal').classList.add('active')},1200);
     }
     loadUsers();
-  } catch(e) {
-    showToast('通信エラー: ' + e.message, 'error');
-  } finally {
-    btn.disabled = false; btn.textContent = '作成';
-  }
+  }catch(e){showToast('通信エラー','error');document.getElementById('bulkResults').innerHTML=''}
+  finally{btn.disabled=false;btn.textContent='一括作成'}
+}
+function dlSingleBulk(u){const x=bulkKeyData.find(r=>r.username===u);if(!x)return;dl(x.privateKey,u+'_id_ed25519')}
+function downloadAllKeys(){for(const x of bulkKeyData)dl(x.privateKey,x.username+'_id_ed25519');showToast(bulkKeyData.length+'件ダウンロード','success')}
+async function bulkSendEmails(){
+  const usernames=bulkKeyData.filter(x=>x.email).map(x=>x.username);
+  if(!usernames.length){showToast('メールアドレスのあるユーザーがいません','error');return}
+  if(!smtpOk){showToast('SMTPが未設定です','error');return}
+  const btn=document.getElementById('bulkSendEmailBtn');btn.disabled=true;btn.textContent='送信中...';
+  try{
+    const r=await fetch(B+'/api/users/bulk-send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({usernames})});
+    const d=await r.json();showToast(d.message,r.ok?'success':'error');loadUsers();
+  }catch(e){showToast('通信エラー','error')}
+  finally{btn.disabled=false;btn.textContent='全員にメール送信'}
 }
 
-// ===== 一括作成 =====
-function openBulkModal() {
-  document.getElementById('bulkModal').classList.add('active');
-  document.getElementById('bulkNames').value = '';
-  document.getElementById('bulkResults').innerHTML = '';
-  document.getElementById('bulkNames').focus();
+// メールプレビュー
+async function previewEmail(username){
+  emailTargetUser=username;
+  try{
+    const r=await fetch(B+'/api/users/'+username+'/email-preview');
+    const d=await r.json();if(!r.ok){showToast(d.error,'error');return}
+    document.getElementById('emailTo').textContent=d.to||'未設定';
+    document.getElementById('emailSubject').textContent=d.subject;
+    document.getElementById('emailAttach').textContent=username+'_id_ed25519（SSH秘密鍵）';
+    document.getElementById('emailBody').textContent=d.body;
+    const sendBtn=document.getElementById('emailSendBtn');
+    if(!smtpOk){sendBtn.disabled=true;sendBtn.textContent='SMTP未設定のため送信不可'}
+    else if(!d.to){sendBtn.disabled=true;sendBtn.textContent='メールアドレス未設定'}
+    else{sendBtn.disabled=false;sendBtn.textContent='この内容で送信する'}
+    document.getElementById('emailModal').classList.add('active');
+  }catch(e){showToast('プレビュー取得失敗','error')}
 }
-function closeBulkModal() { document.getElementById('bulkModal').classList.remove('active'); }
-
-async function createBulkUsers() {
-  const raw = document.getElementById('bulkNames').value.trim();
-  if (!raw) return;
-  const names = raw.split('\n').map(s => s.trim()).filter(s => s.length > 0);
-  if (names.length === 0) return;
-
-  const btn = document.getElementById('bulkBtn');
-  btn.disabled = true; btn.textContent = '作成中...';
-  document.getElementById('bulkResults').innerHTML = '<div class="loading">' + names.length + ' 名を処理中...</div>';
-
-  try {
-    const res = await fetch(BASE + '/api/users/bulk', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ names })
-    });
-    const data = await res.json();
-    if (!res.ok) { showToast(data.error, 'error'); return; }
-
-    showToast(data.message, 'success');
-
-    let html = '';
-    for (const r of data.results) {
-      if (r.success) {
-        html += '<div class="bulk-result-item success"><span class="name">' + r.username + '</span><span class="badge badge-green">作成済</span></div>';
-      } else {
-        html += '<div class="bulk-result-item fail"><span class="name">' + (r.username || r.name) + '</span><span class="badge badge-red">' + r.error + '</span></div>';
-      }
-    }
-    document.getElementById('bulkResults').innerHTML = html;
-
-    bulkKeyData = data.results.filter(r => r.success && r.privateKey);
-    if (bulkKeyData.length > 0) {
-      let keyHtml = '';
-      for (const r of bulkKeyData) {
-        keyHtml += '<div class="bulk-result-item success">' +
-          '<span class="name">' + r.username + '</span>' +
-          '<span class="dl-link" onclick="downloadSingleBulkKey(\'' + r.username + '\')">鍵をダウンロード</span>' +
-          '</div>';
-      }
-      document.getElementById('bulkKeyList').innerHTML = keyHtml;
-      setTimeout(() => {
-        closeBulkModal();
-        document.getElementById('bulkKeyModal').classList.add('active');
-      }, 1500);
-    }
-    loadUsers();
-  } catch(e) {
-    showToast('通信エラー: ' + e.message, 'error');
-    document.getElementById('bulkResults').innerHTML = '';
-  } finally {
-    btn.disabled = false; btn.textContent = '一括作成';
-  }
+async function sendEmail(){
+  const btn=document.getElementById('emailSendBtn');btn.disabled=true;btn.textContent='送信中...';
+  try{
+    const r=await fetch(B+'/api/users/'+emailTargetUser+'/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
+    const d=await r.json();
+    if(r.ok){showToast(d.message,'success');closeModal('emailModal');loadUsers()}
+    else showToast(d.error,'error');
+  }catch(e){showToast('送信エラー','error')}
+  finally{btn.disabled=false;btn.textContent='この内容で送信する'}
 }
 
-function downloadSingleBulkKey(username) {
-  const item = bulkKeyData.find(r => r.username === username);
-  if (!item) return;
-  const blob = new Blob([item.privateKey], { type: 'application/octet-stream' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = username + '_id_ed25519'; a.click();
+// 削除
+async function deleteUser(u){
+  if(!confirm(u+' を削除しますか？\nホームディレクトリも削除されます。'))return;
+  try{const r=await fetch(B+'/api/users/'+u,{method:'DELETE'});const d=await r.json();showToast(d.message||d.error,r.ok?'success':'error');loadUsers()}catch(e){showToast('通信エラー','error')}
 }
 
-function downloadAllKeys() {
-  for (const r of bulkKeyData) {
-    const blob = new Blob([r.privateKey], { type: 'application/octet-stream' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-    a.download = r.username + '_id_ed25519'; a.click();
-  }
-  showToast(bulkKeyData.length + ' 件の鍵をダウンロードしました', 'success');
-}
+// 鍵
+function dlKey(u){window.location.href=B+'/api/users/'+u+'/key'}
+function downloadKey(){dl(curKeyContent,curKeyUser+'_id_ed25519')}
+function copyKey(){navigator.clipboard.writeText(curKeyContent).then(()=>showToast('コピーしました','success'))}
+function dl(content,filename){const b=new Blob([content],{type:'application/octet-stream'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=filename;a.click()}
 
-function closeBulkKeyModal() { document.getElementById('bulkKeyModal').classList.remove('active'); }
+// トースト
+function showToast(m,t){const el=document.getElementById('toast');el.textContent=m;el.className='toast '+t+' show';setTimeout(()=>el.classList.remove('show'),3500)}
 
-// ===== 削除 =====
-async function deleteUser(username) {
-  if (!confirm(username + ' を削除しますか？\nホームディレクトリも削除されます。')) return;
-  try {
-    const res = await fetch(BASE + '/api/users/' + username, { method: 'DELETE' });
-    const data = await res.json();
-    if (!res.ok) { showToast(data.error, 'error'); return; }
-    showToast(data.message, 'success');
-    loadUsers();
-  } catch(e) { showToast('通信エラー: ' + e.message, 'error'); }
-}
+// キーボード
+document.getElementById('newEmail').addEventListener('keydown',e=>{if(e.key==='Enter')createUser()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){for(const id of['createModal','bulkModal','keyModal','bulkKeyModal','emailModal'])closeModal(id)}});
 
-// ===== 鍵ダウンロード =====
-function downloadUserKey(username) {
-  window.location.href = BASE + '/api/users/' + username + '/key';
-}
-
-function downloadKey() {
-  const blob = new Blob([currentKeyContent], { type: 'application/octet-stream' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = currentKeyUser + '_id_ed25519'; a.click();
-}
-
-function copyKey() {
-  navigator.clipboard.writeText(currentKeyContent).then(() => showToast('コピーしました', 'success'));
-}
-
-function closeKeyModal() { document.getElementById('keyModal').classList.remove('active'); }
-
-// ===== トースト =====
-function showToast(msg, type) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.className = 'toast ' + type + ' show';
-  setTimeout(() => t.classList.remove('show'), 3000);
-}
-
-// ===== キーボードショートカット =====
-document.getElementById('newUserName').addEventListener('keydown', e => {
-  if (e.key === 'Enter') createUser();
-});
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    closeCreateModal(); closeBulkModal(); closeKeyModal(); closeBulkKeyModal();
-  }
-});
-
-// ===== 初期化 =====
-loadUsers();
+// 初期化
+checkSmtp();loadUsers();
 </script>
 </body>
 </html>

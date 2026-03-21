@@ -7,6 +7,18 @@ services:
       - "127.0.0.1:3004:3000"
     pid: host
     privileged: true
+    volumes:
+      - admin_data:/data
     environment:
       - ADMIN_USER=admin
       - ADMIN_PASS=haregake2026!
+      - SERVER_IP=160.16.207.196
+      # SMTP設定（Gmailの場合はアプリパスワードを使用）
+      - SMTP_HOST=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_USER=
+      - SMTP_PASS=
+      - SMTP_FROM=
+
+volumes:
+  admin_data:
