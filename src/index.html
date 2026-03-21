@@ -227,8 +227,8 @@ async function loadUsers(){
 }
 
 function renderUsers(users){
-  if(!users.length){document.getElementById('userTable').innerHTML='<table><tr class="empty-row"><td colspan="8">ユーザーがまだ登録されていません</td></tr></table>';return}
-  let h='<table><thead><tr><th>ユーザー名</th><th>メール</th><th>SSH鍵</th><th>権限</th><th>認証</th><th>セキュリティ</th><th>メール送信</th><th>操作</th></tr></thead><tbody>';
+  if(!users.length){document.getElementById('userTable').innerHTML='<table><tr class="empty-row"><td colspan="9">ユーザーがまだ登録されていません</td></tr></table>';return}
+  let h='<table><thead><tr><th>ユーザー名</th><th>メール</th><th>VPN</th><th>SSH鍵</th><th>権限</th><th>認証</th><th>セキュリティ</th><th>メール送信</th><th>操作</th></tr></thead><tbody>';
   for(const u of users){
     // メール
     const em=u.email?'<span style="font-size:12px">'+u.email+'</span>':'<span style="color:var(--text2);font-size:12px">未設定</span>';
@@ -261,13 +261,21 @@ function renderUsers(users){
     }else{
       ms='<span style="color:var(--text2);font-size:11px">メール未設定</span>';
     }
+    // VPN
+    let vp;
+    if(u.hasVpn){
+      vp='<span class="tip"><span class="badge badge-green">'+u.vpnIp+'</span><span class="tt">VPN設定済み。WireGuardで接続可能</span></span>';
+    }else{
+      vp='<span class="tip"><span class="badge badge-red">未設定</span><span class="tt">VPN設定が未生成です</span></span>';
+    }
     // 操作
     let ops='<div class="btn-actions">';
     if(u.hasKey)ops+='<button class="btn btn-download btn-sm" onclick="dlKey(\''+u.username+'\')">鍵</button>';
+    if(u.hasVpn)ops+='<button class="btn btn-download btn-sm" onclick="dlVpn(\''+u.username+'\')">VPN</button>';
     ops+='<button class="btn btn-danger btn-sm" onclick="deleteUser(\''+u.username+'\')">削除</button></div>';
 
     h+='<tr><td><strong>'+u.username+'</strong><br><span style="color:var(--text2);font-size:11px">UID:'+u.uid+'</span></td>';
-    h+='<td>'+em+'</td><td>'+kb+'</td><td>'+pm+'</td><td>'+ab+'</td><td>'+sc+'</td><td>'+ms+'</td><td>'+ops+'</td></tr>';
+    h+='<td>'+em+'</td><td>'+vp+'</td><td>'+kb+'</td><td>'+pm+'</td><td>'+ab+'</td><td>'+sc+'</td><td>'+ms+'</td><td>'+ops+'</td></tr>';
   }
   h+='</tbody></table>';document.getElementById('userTable').innerHTML=h;
 }
@@ -350,7 +358,7 @@ async function previewEmail(username){
     const d=await r.json();if(!r.ok){showToast(d.error,'error');return}
     document.getElementById('emailTo').textContent=d.to||'未設定';
     document.getElementById('emailSubject').textContent=d.subject;
-    document.getElementById('emailAttach').textContent=username+'_id_ed25519（SSH秘密鍵）';
+    document.getElementById('emailAttach').textContent=username+'_id_ed25519（SSH秘密鍵）、'+username+'_wireguard.conf（VPN設定）';
     document.getElementById('emailBody').textContent=d.body;
     const sendBtn=document.getElementById('emailSendBtn');
     if(!smtpOk){sendBtn.disabled=true;sendBtn.textContent='SMTP未設定のため送信不可'}
@@ -378,6 +386,7 @@ async function deleteUser(u){
 
 // 鍵
 function dlKey(u){window.location.href=B+'/api/users/'+u+'/key'}
+function dlVpn(u){window.location.href=B+'/api/users/'+u+'/vpn'}
 function downloadKey(){dl(curKeyContent,curKeyUser+'_id_ed25519')}
 function copyKey(){navigator.clipboard.writeText(curKeyContent).then(()=>showToast('コピーしました','success'))}
 function dl(content,filename){const b=new Blob([content],{type:'application/octet-stream'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=filename;a.click()}

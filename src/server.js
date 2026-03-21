@@ -75,18 +75,98 @@ function emailToUsername(email) {
   return `user_${sanitized}`;
 }
 
-// ===== Geminiプロンプト生成 =====
-function generateGeminiPrompt(username) {
+// ===== WireGuard設定管理 =====
+const WG_CONF = '/etc/wireguard/wg0.conf';
+const VPN_SUBNET = '10.0.0';
+const VPN_SERVER_PORT = 51820;
+
+// 次に使えるVPN IPを取得
+function getNextVpnIp() {
+  const userData = loadUserData();
+  const usedIps = new Set();
+  usedIps.add(1); // 10.0.0.1 = server
+  usedIps.add(2); // 10.0.0.2 = admin
+
+  for (const [, ud] of Object.entries(userData)) {
+    if (ud.vpnIp) {
+      const last = parseInt(ud.vpnIp.split('.').pop());
+      if (last) usedIps.add(last);
+    }
+  }
+  for (let i = 3; i <= 254; i++) {
+    if (!usedIps.has(i)) return `${VPN_SUBNET}.${i}`;
+  }
+  throw new Error('VPN IPアドレスが枯渇しました（最大253クライアント）');
+}
+
+// WireGuardクライアント設定を生成してサーバーに登録
+function createWgPeer(username, vpnIp) {
+  // クライアント鍵ペア生成
+  const privKey = hostExec('wg genkey');
+  const pubKey = execSync(`echo "${privKey}" | wg pubkey`, { encoding: 'utf-8' }).trim();
+  // ↑ wg pubkey はホスト上で実行する必要がある
+  const pubKeyHost = hostExec(`echo '${privKey}' | wg pubkey`);
+  const serverPubKey = hostExec('cat /etc/wireguard/server_public.key');
+
+  // サーバーのwg0.confにPeer追加
+  const peerBlock = `
+# === ${username} ===
+[Peer]
+PublicKey = ${pubKeyHost}
+AllowedIPs = ${vpnIp}/32`;
+
+  hostExec(`echo '${peerBlock}' >> ${WG_CONF}`);
+
+  // 実行中のWireGuardにも即時反映
+  hostExec(`wg set wg0 peer ${pubKeyHost} allowed-ips ${vpnIp}/32`);
+
+  // クライアント設定ファイルの内容を返す
+  const clientConf = `[Interface]
+PrivateKey = ${privKey}
+Address = ${vpnIp}/24
+DNS = 1.1.1.1
+
+[Peer]
+PublicKey = ${serverPubKey}
+Endpoint = ${SERVER_IP}:${VPN_SERVER_PORT}
+AllowedIPs = 10.0.0.1/32
+PersistentKeepalive = 25`;
+
+  return { clientConf, pubKey: pubKeyHost, privKey };
+}
+
+// WireGuardからPeerを削除
+function removeWgPeer(username, pubKey) {
+  try {
+    if (pubKey) {
+      hostExec(`wg set wg0 peer ${pubKey} remove`);
+    }
+    // wg0.confからもブロックを削除
+    hostExec(`sed -i '/# === ${username} ===/,/^$/d' ${WG_CONF}`);
+  } catch (e) {
+    console.error('removeWgPeer error:', e.message);
+  }
+}
+
+// ===== Geminiプロンプト生成（VPN + SSH） =====
+function generateGeminiPrompt(username, vpnIp) {
   return `あなたはITの完全な初心者を手取り足取りサポートする、とても親切で丁寧なアシスタントです。
 
-これから、このユーザーがSSH接続でリモートサーバーにログインできるように、一歩ずつ案内してください。
-ユーザーは技術的な知識がほとんどないため、「ターミナル」「コマンド」などの用語も毎回丁寧に説明してください。
+これから、このユーザーがVPN接続→SSH接続でリモートサーバーにログインできるように、一歩ずつ案内してください。
+ユーザーは技術的な知識がほとんどないため、「ターミナル」「コマンド」「VPN」などの用語も毎回丁寧に説明してください。
+
+【このサーバーはVPN接続が必須です】
+セキュリティのため、サーバーへのSSH接続にはVPN（WireGuard）の接続が必要です。
+まずVPNを接続してから、SSHでログインする手順を案内してください。
 
 【接続情報】
-- サーバーアドレス: ${SERVER_IP}
+- VPN方式: WireGuard
+- VPN設定ファイル: 添付の「${username}_wireguard.conf」
+- VPN接続後のサーバーアドレス: 10.0.0.1
+- このユーザーのVPN IP: ${vpnIp || '（設定ファイル参照）'}
 - ユーザー名: ${username}
 - 認証方式: SSH鍵認証（秘密鍵ファイルを使用）
-- 秘密鍵ファイル名: ${username}_id_ed25519（このメールに添付されています）
+- 秘密鍵ファイル名: ${username}_id_ed25519（このメールに添付）
 
 【あなたの役割】
 1. まずユーザーのOSを確認してください（Windows / Mac / Linux）
@@ -96,66 +176,105 @@ function generateGeminiPrompt(username) {
 5. 専門用語が出てきたら、必ず簡単な言葉で説明を添えてください
 6. コマンドを入力してもらう際は、コピペ可能な形で提示してください
 
-【教えるべき手順】
+=== パートA: VPN（WireGuard）の設定 ===
 
-Step 1: 秘密鍵ファイルの保存
-- このメールに添付されている秘密鍵ファイル「${username}_id_ed25519」をダウンロードする
+Step A1: WireGuardアプリのインストール
+- Mac: App Storeを開いて「WireGuard」を検索してインストール
+  - または、ターミナルで brew install wireguard-tools（Homebrewが入っている場合）
+- Windows: https://www.wireguard.com/install/ にアクセスして「Download Windows Installer」をクリック
+  - ダウンロードしたファイルを実行してインストール
+- 「WireGuardとは何か？」を簡潔に説明する（安全な通信トンネルを作るアプリ）
+
+Step A2: VPN設定ファイルの読み込み
+- このメールに添付されている「${username}_wireguard.conf」をダウンロード
+- Mac（GUIアプリの場合）:
+  - WireGuardアプリを開く
+  - 左下の「+」ボタン →「ファイルからトンネルをインポート」
+  - ダウンロードした「${username}_wireguard.conf」を選択
+- Mac（CLIの場合）:
+  - ターミナルで: sudo cp ~/Downloads/${username}_wireguard.conf /etc/wireguard/haregake.conf
+- Windows:
+  - WireGuardアプリを開く
+  - 左下の「トンネルを追加」→「ファイルからトンネルをインポート」
+  - ダウンロードした「${username}_wireguard.conf」を選択
+
+Step A3: VPN接続
+- Mac（GUIアプリ）: インポートしたトンネルを選択して「有効化」ボタンをクリック
+- Mac（CLI）: ターミナルで sudo wg-quick up haregake
+- Windows: インポートしたトンネルを選択して「有効化」ボタンをクリック
+- 接続が成功すると、ステータスが「有効」（Active）に変わることを説明
+
+Step A4: VPN接続確認
+- ターミナルまたはPowerShellで: ping 10.0.0.1
+- 「応答が返ってくれば成功！」と伝える
+- もし応答がない場合のトラブルシューティング
+
+=== パートB: SSH接続の設定 ===
+
+Step B1: 秘密鍵ファイルの保存
+- このメールに添付されている秘密鍵ファイル「${username}_id_ed25519」をダウンロード
 - 保存先:
-  - Macの場合: ~/.ssh/${username}_id_ed25519
-  - Windowsの場合: C:\\Users\\（自分のユーザー名）\\.ssh\\${username}_id_ed25519
+  - Mac: ~/.ssh/${username}_id_ed25519
+  - Windows: C:\\Users\\（自分のユーザー名）\\.ssh\\${username}_id_ed25519
 - ~/.ssh フォルダがない場合の作成方法も教える
-- 保存する際の注意点（余計な空白や改行を入れないこと、拡張子を付けないこと）
 
-Step 2: ターミナルの開き方
-- Mac: Spotlight検索（Cmd+Space）で「ターミナル」と入力して開く方法をスクリーンショットを使わず言葉で丁寧に説明
-- Windows: スタートメニューで「PowerShell」を検索して開く方法を丁寧に説明
-
-Step 3: .ssh フォルダの作成と秘密鍵の配置
+Step B2: .ssh フォルダの作成と秘密鍵の配置
 - Mac/Linux: mkdir -p ~/.ssh && mv ~/Downloads/${username}_id_ed25519 ~/.ssh/
 - Windows: PowerShellで mkdir $env:USERPROFILE\\.ssh（既にある場合はスキップ）、Move-Item でファイルを移動
 
-Step 4: 秘密鍵のパーミッション設定
+Step B3: 秘密鍵のパーミッション設定
 - Mac/Linux: chmod 600 ~/.ssh/${username}_id_ed25519
-  - 「chmod」が何をするコマンドか説明する
 - Windows: 以下を1行ずつ丁寧に説明
   $keyPath = "$env:USERPROFILE\\.ssh\\${username}_id_ed25519"
   icacls $keyPath /inheritance:r
   icacls $keyPath /grant:r "$($env:USERNAME):(R)"
 
-Step 5: SSH接続テスト
-- Mac/Linux: ssh -i ~/.ssh/${username}_id_ed25519 ${username}@${SERVER_IP}
-- Windows: ssh -i $env:USERPROFILE\\.ssh\\${username}_id_ed25519 ${username}@${SERVER_IP}
-- 初回接続時の「The authenticity of host...」メッセージについて
-  - 「yes」と入力してEnterを押すと説明
-  - これは正常な動作であることを安心させる
+Step B4: SSH接続テスト（VPN接続中であること！）
+- Mac/Linux: ssh -i ~/.ssh/${username}_id_ed25519 ${username}@10.0.0.1
+- Windows: ssh -i $env:USERPROFILE\\.ssh\\${username}_id_ed25519 ${username}@10.0.0.1
+- ⚠ 重要: 接続先は 10.0.0.1 です（VPN経由のアドレス）
+- 初回接続時の「The authenticity of host...」メッセージ → 「yes」を入力
 
-Step 6: 接続確認
+Step B5: 接続確認
 - 「${username}@...」のようなプロンプトが表示されたら成功！
 - whoami コマンドで自分のユーザー名を確認
-- ls /var/www/app/ でプロジェクトディレクトリを確認
-- 「おめでとうございます！接続成功です！」と祝福する
+- 「おめでとうございます！VPN + SSH接続成功です！」と祝福する
 
-Step 7: SSH config の設定（便利設定）
+Step B6: SSH config の設定（便利設定）
 - 一度切断してから設定する（exit コマンド）
-- Mac/Linux: nano ~/.ssh/config または vi ~/.ssh/config で以下を書き込む:
+- Mac/Linux: nano ~/.ssh/config で以下を書き込む:
   Host haregake
-    HostName ${SERVER_IP}
+    HostName 10.0.0.1
     User ${username}
     IdentityFile ~/.ssh/${username}_id_ed25519
 - Windows: notepad $env:USERPROFILE\\.ssh\\config で同じ内容を書き込む
 - 設定後は「ssh haregake」だけで接続できることを伝え、試してもらう
 
-Step 8: 切断方法
-- exit コマンドまたは Ctrl+D で切断できることを伝える
-- 「お疲れさまでした！これでいつでもサーバーに接続できます」と締めくくる
+Step B7: 切断方法
+- SSH切断: exit コマンドまたは Ctrl+D
+- VPN切断:
+  - Mac（GUI）: WireGuardアプリで「無効化」
+  - Mac（CLI）: sudo wg-quick down haregake
+  - Windows: WireGuardアプリで「無効化」
+
+=== 毎回の接続手順まとめ ===
+ユーザーに最後にこう伝える:
+「今後サーバーに接続するときは、毎回この順番で行います:
+ 1. WireGuardアプリでVPNを接続（有効化）
+ 2. ターミナルで ssh haregake
+ 3. 作業が終わったら exit でSSH切断
+ 4. WireGuardアプリでVPNを切断（無効化）」
 
 最初の一言は以下のように始めてください：
-「こんにちは！サーバーへのSSH接続の設定をお手伝いします😊 難しそうに見えるかもしれませんが、一つずつ一緒に進めれば大丈夫です！まず教えてください、お使いのパソコンは Windows ですか？ Mac ですか？」`;
+「こんにちは！サーバーへの接続設定をお手伝いします😊 このサーバーはセキュリティのためVPN接続が必要ですが、一つずつ進めれば大丈夫です！まず教えてください、お使いのパソコンは Windows ですか？ Mac ですか？」`;
 }
 
-// ===== メール本文生成 =====
+// ===== メール本文生成（VPN対応版） =====
 function generateEmailContent(username) {
-  const prompt = generateGeminiPrompt(username);
+  const userData = loadUserData();
+  const ud = userData[username] || {};
+  const vpnIp = ud.vpnIp || '';
+  const prompt = generateGeminiPrompt(username, vpnIp);
   return `${username} 様
 
 haregake-lab のサーバーアカウントが作成されました。
@@ -163,25 +282,30 @@ haregake-lab のサーバーアカウントが作成されました。
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ■ あなたの接続情報
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-サーバーアドレス : ${SERVER_IP}
 ユーザー名       : ${username}
+VPN IP           : ${vpnIp}
+SSH接続先        : 10.0.0.1（VPN接続後）
 認証方式         : SSH鍵認証
-秘密鍵ファイル   : 添付の「${username}_id_ed25519」
+
+■ 添付ファイル（2つ）
+  1. ${username}_wireguard.conf → VPN設定ファイル
+  2. ${username}_id_ed25519     → SSH秘密鍵ファイル
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-■ 接続方法（初めての方へ）
+■ 接続の流れ（概要）
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-以下の手順で設定を進めてください。
+このサーバーはセキュリティのため VPN接続が必須 です。
 
-【ステップ1】
-添付されている秘密鍵ファイル
-「${username}_id_ed25519」をダウンロードしてください。
+【ステップ1】WireGuardアプリをインストール
+【ステップ2】添付の VPN設定ファイル を読み込んでVPN接続
+【ステップ3】VPN接続した状態で SSH接続
 
-【ステップ2】
-下の「Gemini用プロンプト」を
-Google Gemini ( https://gemini.google.com ) に貼り付けて、
-表示される指示に一つずつ従ってください。
-Geminiがあなたの環境に合わせて丁寧にガイドしてくれます。
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+■ 設定が初めての方へ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+以下のプロンプトを丸ごとコピーして
+Google Gemini ( https://gemini.google.com ) に貼り付けてください。
+Geminiが一歩ずつ丁寧にガイドしてくれます。
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ■ Gemini用プロンプト（以下を全てコピーして貼り付け）
@@ -193,6 +317,13 @@ ${prompt}
 ■ サーバー上で使えるディレクトリ
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 /var/www/app/sandbox/ → 共有実験エリア（自由に使えます）
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+■ 毎回の接続手順
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. WireGuardアプリでVPNを「有効化」
+2. ターミナルで ssh haregake（設定済みの場合）
+3. 作業が終わったら exit → VPNを「無効化」
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ご不明点があれば管理者にお問い合わせください。
@@ -271,6 +402,8 @@ app.get('/api/users', (req, res) => {
         hasSudo, hasDocker,
         email: ud.email || null,
         emailSentAt: ud.emailSentAt || null,
+        vpnIp: ud.vpnIp || null,
+        hasVpn: !!ud.wgConf,
       });
     }
     res.json(users);
@@ -328,14 +461,31 @@ app.post('/api/users', (req, res) => {
 
     const privateKey = hostExec(`cat ${keyDir}/id_ed25519`);
 
-    // ユーザーデータ保存
-    if (userEmail) {
-      const userData = loadUserData();
-      userData[username] = { email: userEmail, createdAt: new Date().toISOString(), emailSentAt: null };
-      saveUserData(userData);
+    // WireGuard設定生成
+    const vpnIp = getNextVpnIp();
+    let wgConf = '';
+    let wgPubKey = '';
+    try {
+      const wgResult = createWgPeer(username, vpnIp);
+      wgConf = wgResult.clientConf;
+      wgPubKey = wgResult.pubKey;
+    } catch (e) {
+      console.error('WireGuard設定生成エラー:', e.message);
     }
 
-    res.json({ success: true, username, email: userEmail, message: `${username} を作成しました`, privateKey });
+    // ユーザーデータ保存
+    const userData = loadUserData();
+    userData[username] = {
+      email: userEmail,
+      createdAt: new Date().toISOString(),
+      emailSentAt: null,
+      vpnIp,
+      wgPubKey,
+      wgConf,
+    };
+    saveUserData(userData);
+
+    res.json({ success: true, username, email: userEmail, vpnIp, message: `${username} を作成しました`, privateKey, wgConf });
   } catch (e) {
     console.error('POST /api/users error:', e.message);
     res.status(500).json({ error: `作成失敗: ${e.message}` });
@@ -402,11 +552,23 @@ app.post('/api/users/bulk', (req, res) => {
 
         const privateKey = hostExec(`cat ${keyDir}/id_ed25519`);
 
-        if (userEmail) {
-          userData[username] = { email: userEmail, createdAt: new Date().toISOString(), emailSentAt: null };
-        }
+        // WireGuard設定生成
+        const vpnIp = getNextVpnIp();
+        let wgConf = '', wgPubKey = '';
+        try {
+          const wgResult = createWgPeer(username, vpnIp);
+          wgConf = wgResult.clientConf;
+          wgPubKey = wgResult.pubKey;
+        } catch (e) { console.error('WG error:', e.message); }
 
-        results.push({ input: email || name, username, email: userEmail, success: true, privateKey });
+        userData[username] = {
+          email: userEmail,
+          createdAt: new Date().toISOString(),
+          emailSentAt: null,
+          vpnIp, wgPubKey, wgConf,
+        };
+
+        results.push({ input: email || name, username, email: userEmail, vpnIp, success: true, privateKey, wgConf });
       } catch (e) {
         results.push({ input: email || name, username, success: false, error: e.message });
       }
@@ -431,8 +593,14 @@ app.delete('/api/users/:username', (req, res) => {
     }
     hostExec(`userdel -r ${username}`);
 
-    // ユーザーデータからも削除
+    // WireGuard Peer削除
     const userData = loadUserData();
+    const ud = userData[username];
+    if (ud && ud.wgPubKey) {
+      removeWgPeer(username, ud.wgPubKey);
+    }
+
+    // ユーザーデータからも削除
     delete userData[username];
     saveUserData(userData);
 
@@ -452,6 +620,23 @@ app.get('/api/users/:username/key', (req, res) => {
     res.send(privateKey);
   } catch (e) {
     res.status(404).json({ error: '秘密鍵が見つかりません' });
+  }
+});
+
+// ===== API: VPN設定ダウンロード =====
+app.get('/api/users/:username/vpn', (req, res) => {
+  try {
+    const { username } = req.params;
+    const userData = loadUserData();
+    const ud = userData[username];
+    if (!ud || !ud.wgConf) {
+      return res.status(404).json({ error: 'VPN設定が見つかりません' });
+    }
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${username}_wireguard.conf"`);
+    res.send(ud.wgConf);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 
@@ -495,16 +680,21 @@ app.post('/api/users/:username/send-email', (req, res) => {
     let privateKey = '';
     try { privateKey = hostExec(`cat /home/${username}/.ssh/id_ed25519`); } catch(e) {}
 
+    // 添付ファイル
+    const attachments = [];
+    if (privateKey) {
+      attachments.push({ filename: `${username}_id_ed25519`, content: privateKey, contentType: 'text/plain' });
+    }
+    if (ud.wgConf) {
+      attachments.push({ filename: `${username}_wireguard.conf`, content: ud.wgConf, contentType: 'text/plain' });
+    }
+
     const mailOptions = {
       from: SMTP_FROM,
       to: ud.email,
       subject: subject,
       text: body,
-      attachments: privateKey ? [{
-        filename: `${username}_id_ed25519`,
-        content: privateKey,
-        contentType: 'text/plain',
-      }] : [],
+      attachments,
     };
 
     transporter.sendMail(mailOptions, (err, info) => {
@@ -552,12 +742,16 @@ app.post('/api/users/bulk-send-email', (req, res) => {
       let privateKey = '';
       try { privateKey = hostExec(`cat /home/${username}/.ssh/id_ed25519`); } catch(e) {}
 
+      const atts = [];
+      if (privateKey) atts.push({ filename: `${username}_id_ed25519`, content: privateKey, contentType: 'text/plain' });
+      if (ud.wgConf) atts.push({ filename: `${username}_wireguard.conf`, content: ud.wgConf, contentType: 'text/plain' });
+
       transporter.sendMail({
         from: SMTP_FROM,
         to: ud.email,
         subject: '【haregake-lab】サーバーアカウントが作成されました',
         text: body,
-        attachments: privateKey ? [{ filename: `${username}_id_ed25519`, content: privateKey, contentType: 'text/plain' }] : [],
+        attachments: atts,
       }, (err) => {
         if (err) {
           results.push({ username, email: ud.email, success: false, error: err.message });
