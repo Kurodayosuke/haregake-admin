@@ -127,7 +127,7 @@ DNS = 1.1.1.1
 [Peer]
 PublicKey = ${serverPubKey}
 Endpoint = ${SERVER_IP}:${VPN_SERVER_PORT}
-AllowedIPs = 10.0.0.1/32
+AllowedIPs = 10.0.0.0/24
 PersistentKeepalive = 25`;
 
   return { clientConf, pubKey: pubKeyHost };
